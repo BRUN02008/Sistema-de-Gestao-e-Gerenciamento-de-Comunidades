@@ -35,8 +35,17 @@ export interface Documento {
   titulo: string;
   tipo: 'certidao' | 'declaracao' | 'relatorio' | 'outro';
   morador: string;
+  moradorId?: string;
   dataEmissao: string;
   arquivo: string;
+}
+
+export interface Dependente {
+  id: string;
+  nome: string;
+  parentesco: string;
+  dataNascimento: string;
+  moradorResponsavelId: string;
 }
 
 export interface EventoAgenda {
@@ -231,6 +240,7 @@ export const mockDocumentos: Documento[] = [
     titulo: 'Declaração de Residência - Francisco Silva',
     tipo: 'declaracao',
     morador: 'Francisco Ribeiro da Silva',
+    moradorId: '1',
     dataEmissao: '2024-04-15',
     arquivo: 'declaracao_001.pdf'
   },
@@ -239,6 +249,7 @@ export const mockDocumentos: Documento[] = [
     titulo: 'Certidão de Nascimento - Maria Souza',
     tipo: 'certidao',
     morador: 'Maria das Graças Souza',
+    moradorId: '2',
     dataEmissao: '2024-04-20',
     arquivo: 'certidao_001.pdf'
   },
@@ -255,8 +266,27 @@ export const mockDocumentos: Documento[] = [
     titulo: 'Declaração de Atividade Pesqueira',
     tipo: 'declaracao',
     morador: 'Francisco Ribeiro da Silva',
+    moradorId: '1',
     dataEmissao: '2024-04-25',
     arquivo: 'declaracao_pesca_001.pdf'
+  },
+  {
+    id: '5',
+    titulo: 'Declaração de Residência - Sebastiana Costa',
+    tipo: 'declaracao',
+    morador: 'Sebastiana Costa',
+    moradorId: '6',
+    dataEmissao: '2024-03-10',
+    arquivo: 'declaracao_costa_001.pdf'
+  },
+  {
+    id: '6',
+    titulo: 'Certidão de Benefício Social - Sebastiana Costa',
+    tipo: 'certidao',
+    morador: 'Sebastiana Costa',
+    moradorId: '6',
+    dataEmissao: '2024-04-05',
+    arquivo: 'certidao_beneficio_costa.pdf'
   }
 ];
 
@@ -442,6 +472,136 @@ export const mockMensalidades: Mensalidade[] = [
     dataPagamento: '2024-04-10',
     status: 'pago',
     metodoPagamento: 'pix'
+  },
+  {
+    id: '9',
+    moradorId: '6',
+    moradorNome: 'Sebastiana Costa',
+    familia: 'Família Costa',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-01',
+    dataVencimento: '2024-01-10',
+    dataPagamento: '2024-01-09',
+    status: 'pago',
+    metodoPagamento: 'dinheiro'
+  },
+  {
+    id: '10',
+    moradorId: '6',
+    moradorNome: 'Sebastiana Costa',
+    familia: 'Família Costa',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-02',
+    dataVencimento: '2024-02-10',
+    dataPagamento: '2024-02-10',
+    status: 'pago',
+    metodoPagamento: 'dinheiro'
+  },
+  {
+    id: '11',
+    moradorId: '6',
+    moradorNome: 'Sebastiana Costa',
+    familia: 'Família Costa',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-03',
+    dataVencimento: '2024-03-10',
+    dataPagamento: '2024-03-08',
+    status: 'pago',
+    metodoPagamento: 'dinheiro'
+  },
+  {
+    id: '12',
+    moradorId: '6',
+    moradorNome: 'Sebastiana Costa',
+    familia: 'Família Costa',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-04',
+    dataVencimento: '2024-04-10',
+    status: 'pendente'
+  },
+  {
+    id: '13',
+    moradorId: '1',
+    moradorNome: 'Francisco Ribeiro da Silva',
+    familia: 'Família Silva',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-01',
+    dataVencimento: '2024-01-10',
+    dataPagamento: '2024-01-08',
+    status: 'pago',
+    metodoPagamento: 'dinheiro'
+  },
+  {
+    id: '14',
+    moradorId: '1',
+    moradorNome: 'Francisco Ribeiro da Silva',
+    familia: 'Família Silva',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-02',
+    dataVencimento: '2024-02-10',
+    dataPagamento: '2024-02-07',
+    status: 'pago',
+    metodoPagamento: 'dinheiro'
+  },
+  {
+    id: '15',
+    moradorId: '1',
+    moradorNome: 'Francisco Ribeiro da Silva',
+    familia: 'Família Silva',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-03',
+    dataVencimento: '2024-03-10',
+    dataPagamento: '2024-03-09',
+    status: 'pago',
+    metodoPagamento: 'pix'
+  },
+  {
+    id: '16',
+    moradorId: '1',
+    moradorNome: 'Francisco Ribeiro da Silva',
+    familia: 'Família Silva',
+    valor: VALOR_MENSALIDADE,
+    mesReferencia: '2024-06',
+    dataVencimento: '2024-06-10',
+    status: 'pendente'
+  }
+];
+
+export const mockDependentes: Dependente[] = [
+  {
+    id: '1',
+    nome: 'Rosa Maria da Silva',
+    parentesco: 'Cônjuge',
+    dataNascimento: '1968-05-20',
+    moradorResponsavelId: '1'
+  },
+  {
+    id: '2',
+    nome: 'Pedro Luís da Silva',
+    parentesco: 'Filho',
+    dataNascimento: '1992-03-14',
+    moradorResponsavelId: '1'
+  },
+  {
+    id: '3',
+    nome: 'Luana da Silva',
+    parentesco: 'Filha',
+    dataNascimento: '1995-08-30',
+    moradorResponsavelId: '1'
+  },
+  {
+    id: '4',
+    nome: 'Miguel da Silva',
+    parentesco: 'Filho',
+    dataNascimento: '2005-11-02',
+    moradorResponsavelId: '1'
+  },
+  {
+    id: '5',
+    nome: 'José Antônio Costa',
+    parentesco: 'Filho',
+    dataNascimento: '1980-07-15',
+    moradorResponsavelId: '6'
   }
 ];
 

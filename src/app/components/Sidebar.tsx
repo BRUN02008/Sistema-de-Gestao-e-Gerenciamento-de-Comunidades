@@ -9,8 +9,10 @@ import {
   LogOut,
   Waves,
   TreePine,
-  Wallet
+  Wallet,
+  User as UserIcon
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -24,7 +26,7 @@ interface NavItemProps {
 
 function NavItem({ to, icon, label }: NavItemProps) {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname.startsWith(to) && (to !== '/dashboard' || location.pathname === '/dashboard');
 
   return (
     <Link
@@ -43,7 +45,22 @@ function NavItem({ to, icon, label }: NavItemProps) {
   );
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrador',
+  tecnico: 'Técnico',
+  visualizador: 'Morador'
+};
+
+const ROLE_BADGE_COLORS: Record<string, string> = {
+  admin: 'bg-primary/20 text-primary',
+  tecnico: 'bg-secondary/20 text-secondary',
+  visualizador: 'bg-accent/20 text-accent'
+};
+
 export function Sidebar({ onLogout }: SidebarProps) {
+  const { user } = useAuth();
+  const isMorador = user?.role === 'visualizador';
+
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-screen">
       <div className="p-6 border-b border-sidebar-border">
@@ -60,12 +77,48 @@ export function Sidebar({ onLogout }: SidebarProps) {
         <p className="text-xs text-sidebar-foreground/60 mt-2">Cachoeira do Castanho - AM</p>
       </div>
 
+      {user && (
+        <div className="px-4 py-3 border-b border-sidebar-border/50 bg-sidebar-accent/20">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <UserIcon className="text-primary" size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-sidebar-foreground truncate">{user.nome}</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${ROLE_BADGE_COLORS[user.role]}`}>
+                {ROLE_LABELS[user.role]}
+              </span>
+            </div>
+          </div>
+          {isMorador && user.familia && (
+            <p className="text-xs text-sidebar-foreground/60 mt-1 pl-10">{user.familia}</p>
+          )}
+        </div>
+      )}
+
       <nav className="flex-1 p-4 space-y-1">
         <NavItem to="/dashboard" icon={<Home size={20} />} label="Início" />
-        <NavItem to="/moradores" icon={<Users size={20} />} label="Moradores" />
-        <NavItem to="/financas" icon={<Wallet size={20} />} label="Finanças" />
-        <NavItem to="/documentos" icon={<FileText size={20} />} label="Documentos" />
-        <NavItem to="/relatorios" icon={<BarChart3 size={20} />} label="Relatórios" />
+
+        {!isMorador && (
+          <NavItem to="/moradores" icon={<Users size={20} />} label="Moradores" />
+        )}
+
+        <NavItem
+          to={isMorador ? '/financas/minha-conta' : '/financas'}
+          icon={<Wallet size={20} />}
+          label={isMorador ? 'Minhas Finanças' : 'Finanças'}
+        />
+
+        <NavItem
+          to="/documentos"
+          icon={<FileText size={20} />}
+          label={isMorador ? 'Meus Documentos' : 'Documentos'}
+        />
+
+        {!isMorador && (
+          <NavItem to="/relatorios" icon={<BarChart3 size={20} />} label="Relatórios" />
+        )}
+
         <NavItem to="/agenda" icon={<Calendar size={20} />} label="Agenda" />
       </nav>
 

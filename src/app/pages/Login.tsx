@@ -78,17 +78,60 @@ export function Login() {
             </form>
 
             <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">Usuários de teste:</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div>
-                  <strong>Admin:</strong> admin@cachoeira.com / admin123
-                </div>
-                <div>
-                  <strong>Técnico:</strong> tecnico@cachoeira.com / tecnico123
-                </div>
-                <div>
-                  <strong>Visualizador:</strong> visualizador@cachoeira.com / visualizador123
-                </div>
+              <p className="text-sm text-muted-foreground mb-3">Acesso de demonstração:</p>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => { setEmail('admin@cachoeira.com'); setSenha('admin123'); }}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Administrador</p>
+                      <p className="text-xs text-muted-foreground">Acesso completo ao sistema</p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">Admin</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('tecnico@cachoeira.com'); setSenha('tecnico123'); }}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Técnico</p>
+                      <p className="text-xs text-muted-foreground">Gestão de moradores e dados</p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/20 text-secondary">Técnico</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('visualizador@cachoeira.com'); setSenha('visualizador123'); }}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Sebastiana Costa</p>
+                      <p className="text-xs text-muted-foreground">Portal do morador — Família Costa</p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">Morador</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('francisco@cachoeira.com'); setSenha('morador123'); }}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Francisco Ribeiro da Silva</p>
+                      <p className="text-xs text-muted-foreground">Portal do morador — Família Silva</p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">Morador</span>
+                  </div>
+                </button>
               </div>
             </div>
           </CardContent>

@@ -1,10 +1,11 @@
 import { Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
-import { Users, Home as HomeIcon, FileText, Calendar, TrendingUp, Wallet, ArrowRight } from 'lucide-react';
+import { Users, Home as HomeIcon, FileText, Calendar, TrendingUp, Wallet, ArrowRight, CheckCircle, AlertCircle, Clock, User } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { mockMoradores, mockFamilias, mockAtividades, mockDocumentos, mockMensalidades } from '../data/mockData';
+import { mockMoradores, mockFamilias, mockAtividades, mockDocumentos, mockMensalidades, mockEventos, mockInvestimentos } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 
-export function Dashboard() {
+function DashboardAdmin() {
   const totalMoradores = mockMoradores.length;
   const totalFamilias = mockFamilias.length;
   const totalDocumentos = mockDocumentos.length;
@@ -14,12 +15,8 @@ export function Dashboard() {
     .filter(m => m.status === 'pendente' || m.status === 'atrasado')
     .length;
 
-  const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor);
-  };
+  const formatarMoeda = (valor: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
   const valorPendente = mockMensalidades
     .filter(m => m.status === 'pendente' || m.status === 'atrasado')
@@ -110,8 +107,7 @@ export function Dashboard() {
             <CardTitle>Situação Financeira</CardTitle>
             <Link to="/financas">
               <button className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
-                Ver Detalhes
-                <ArrowRight size={16} />
+                Ver Detalhes <ArrowRight size={16} />
               </button>
             </Link>
           </div>
@@ -125,11 +121,8 @@ export function Dashboard() {
               </div>
               <p className="text-2xl text-foreground mb-1">{totalMensalidadesPendentes}</p>
               <p className="text-sm text-muted-foreground">Pendentes/Atrasadas</p>
-              <p className="text-sm text-destructive mt-2">
-                {formatarMoeda(valorPendente)} a receber
-              </p>
+              <p className="text-sm text-destructive mt-2">{formatarMoeda(valorPendente)} a receber</p>
             </div>
-
             <div className="p-4 bg-accent/5 rounded-lg border border-accent/20">
               <div className="flex items-center gap-3 mb-2">
                 <TrendingUp className="text-accent" size={24} />
@@ -177,7 +170,7 @@ export function Dashboard() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent = 0 }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -217,8 +210,7 @@ export function Dashboard() {
                 </div>
                 <div>
                   <span
-                    className={`
-                      px-3 py-1 rounded-full text-xs
+                    className={`px-3 py-1 rounded-full text-xs
                       ${atividade.status === 'concluida' ? 'bg-primary/20 text-primary' : ''}
                       ${atividade.status === 'em_andamento' ? 'bg-accent/20 text-accent' : ''}
                       ${atividade.status === 'pendente' ? 'bg-chart-4/20' : ''}
@@ -237,4 +229,217 @@ export function Dashboard() {
       </Card>
     </div>
   );
+}
+
+function DashboardMorador() {
+  const { user } = useAuth();
+
+  const minhasMensalidades = mockMensalidades.filter(m => m.moradorId === user?.moradorId);
+  const pagas = minhasMensalidades.filter(m => m.status === 'pago');
+  const pendentes = minhasMensalidades.filter(m => m.status === 'pendente' || m.status === 'atrasado');
+  const meusMeusDocumentos = mockDocumentos.filter(d => d.moradorId === user?.moradorId);
+  const familia = mockFamilias.find(f => f.nome === user?.familia);
+
+  const hoje = new Date();
+  const proximosEventos = [...mockEventos]
+    .filter(e => new Date(e.data) >= hoje)
+    .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+    .slice(0, 3);
+
+  const investimentosRecentes = mockInvestimentos.slice(0, 3);
+
+  const formatarMoeda = (valor: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+
+  const formatarData = (data: string) =>
+    new Date(data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const getMesLabel = (mesRef: string) => {
+    const [ano, mes] = mesRef.split('-');
+    return new Date(parseInt(ano), parseInt(mes) - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-6 border border-primary/20">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+            <User className="text-primary" size={32} />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Bem-vindo(a) ao portal do morador</p>
+            <h1 className="text-foreground">{user?.nome}</h1>
+            {familia && (
+              <p className="text-sm text-muted-foreground">{familia.nome} • {familia.totalMembros} membros • {familia.endereco}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <CheckCircle className="text-primary" size={20} />
+              </div>
+              <p className="text-sm text-muted-foreground">Mensalidades Pagas</p>
+            </div>
+            <h2 className="text-foreground">{pagas.length}</h2>
+            <p className="text-xs text-primary mt-1">{formatarMoeda(pagas.reduce((a, m) => a + m.valor, 0))} pagos</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-destructive/10 p-2 rounded-lg">
+                <AlertCircle className="text-destructive" size={20} />
+              </div>
+              <p className="text-sm text-muted-foreground">Pendentes/Atrasadas</p>
+            </div>
+            <h2 className="text-foreground">{pendentes.length}</h2>
+            <p className="text-xs text-destructive mt-1">{formatarMoeda(pendentes.reduce((a, m) => a + m.valor, 0))} em aberto</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-accent/10 p-2 rounded-lg">
+                <FileText className="text-accent" size={20} />
+              </div>
+              <p className="text-sm text-muted-foreground">Meus Documentos</p>
+            </div>
+            <h2 className="text-foreground">{meusMeusDocumentos.length}</h2>
+            <Link to="/documentos" className="text-xs text-accent hover:text-accent/80 mt-1 inline-block">
+              Ver documentos →
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Situação das Mensalidades</CardTitle>
+              <Link to="/financas/minha-conta">
+                <button className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+                  Ver tudo <ArrowRight size={16} />
+                </button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {minhasMensalidades
+                .sort((a, b) => b.mesReferencia.localeCompare(a.mesReferencia))
+                .slice(0, 5)
+                .map((m) => (
+                  <div key={m.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="text-sm text-foreground capitalize">{getMesLabel(m.mesReferencia)}</p>
+                      {m.dataPagamento && (
+                        <p className="text-xs text-muted-foreground">
+                          Pago em {new Date(m.dataPagamento).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-foreground">{formatarMoeda(m.valor)}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        m.status === 'pago' ? 'bg-primary/20 text-primary' :
+                        m.status === 'atrasado' ? 'bg-destructive/20 text-destructive' :
+                        'bg-accent/20 text-accent'
+                      }`}>
+                        {m.status === 'pago' ? 'Pago' : m.status === 'atrasado' ? 'Atrasado' : 'Pendente'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Próximos Eventos</CardTitle>
+              <Link to="/agenda">
+                <button className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+                  Ver agenda <ArrowRight size={16} />
+                </button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {proximosEventos.length > 0 ? (
+              <div className="space-y-3">
+                {proximosEventos.map((evento) => (
+                  <div key={evento.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div className="bg-primary/10 p-2 rounded-lg text-center min-w-[50px]">
+                      <p className="text-primary text-sm">{new Date(evento.data).toLocaleDateString('pt-BR', { day: 'numeric' })}</p>
+                      <p className="text-xs text-muted-foreground uppercase">{new Date(evento.data).toLocaleDateString('pt-BR', { month: 'short' })}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-foreground">{evento.titulo}</p>
+                      <p className="text-xs text-muted-foreground">{evento.horario} • {evento.local}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Clock className="mx-auto mb-2 text-muted-foreground" size={32} />
+                <p className="text-sm text-muted-foreground">Nenhum evento próximo</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Investimentos Recentes da Comunidade</CardTitle>
+            <Link to="/financas/minha-conta">
+              <button className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+                Ver todos <ArrowRight size={16} />
+              </button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {investimentosRecentes.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="text-sm text-foreground">{inv.titulo}</p>
+                  <p className="text-xs text-muted-foreground">{formatarData(inv.data)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-foreground">{formatarMoeda(inv.valor)}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    inv.status === 'concluido' ? 'bg-primary/20 text-primary' :
+                    inv.status === 'em_andamento' ? 'bg-secondary/20 text-secondary' :
+                    'bg-accent/20 text-accent'
+                  }`}>
+                    {inv.status === 'concluido' ? 'Concluído' : inv.status === 'em_andamento' ? 'Em Andamento' : 'Planejado'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function Dashboard() {
+  const { user } = useAuth();
+  const isMorador = user?.role === 'visualizador';
+
+  return isMorador ? <DashboardMorador /> : <DashboardAdmin />;
 }

@@ -3,14 +3,20 @@ import { Card, CardContent } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { mockDocumentos, type Documento } from '../data/mockData';
-import { Plus, Search, Download, Eye, FileText, File } from 'lucide-react';
+import { Plus, Search, Download, Eye, FileText, File, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Documentos() {
+  const { user } = useAuth();
+  const isMorador = user?.role === 'visualizador';
   const [busca, setBusca] = useState('');
-  const [documentos] = useState<Documento[]>(mockDocumentos);
 
-  const documentosFiltrados = documentos.filter((doc) =>
+  const documentosBase = isMorador
+    ? mockDocumentos.filter(d => d.moradorId === user?.moradorId)
+    : mockDocumentos;
+
+  const documentosFiltrados = documentosBase.filter((doc) =>
     doc.titulo.toLowerCase().includes(busca.toLowerCase()) ||
     doc.morador.toLowerCase().includes(busca.toLowerCase()) ||
     doc.tipo.includes(busca.toLowerCase())
@@ -51,14 +57,35 @@ export function Documentos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground mb-2">Documentos</h1>
-          <p className="text-muted-foreground">Gerenciamento de documentos comunitários</p>
+          <h1 className="text-foreground mb-2">
+            {isMorador ? 'Meus Documentos' : 'Documentos'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isMorador
+              ? 'Seus documentos emitidos pela comunidade'
+              : 'Gerenciamento de documentos comunitários'}
+          </p>
         </div>
-        <Button>
-          <Plus size={20} />
-          Novo Documento
-        </Button>
+        {!isMorador && (
+          <Button>
+            <Plus size={20} />
+            Novo Documento
+          </Button>
+        )}
       </div>
+
+      {isMorador && (
+        <div className="flex items-start gap-3 p-4 bg-secondary/10 border border-secondary/20 rounded-lg">
+          <Lock className="text-secondary mt-0.5" size={18} />
+          <div>
+            <p className="text-sm text-foreground">Acesso restrito aos seus documentos</p>
+            <p className="text-xs text-muted-foreground">
+              Você está visualizando apenas os documentos emitidos em seu nome (CPF: {user?.cpf}).
+              Para solicitar novos documentos, entre em contato com a administração.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-6">
@@ -66,7 +93,7 @@ export function Documentos() {
             <Search className="text-muted-foreground" size={20} />
             <Input
               type="text"
-              placeholder="Buscar documentos por título, morador ou tipo..."
+              placeholder={isMorador ? 'Buscar meus documentos...' : 'Buscar documentos por título, morador ou tipo...'}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               fullWidth
@@ -88,9 +115,11 @@ export function Documentos() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 className="text-foreground mb-1">{documento.titulo}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Morador: {documento.morador}
-                      </p>
+                      {!isMorador && (
+                        <p className="text-sm text-muted-foreground">
+                          Morador: {documento.morador}
+                        </p>
+                      )}
                     </div>
                     <span className="px-3 py-1 rounded-full text-xs bg-primary/20 text-primary">
                       {getTipoLabel(documento.tipo)}
@@ -136,7 +165,16 @@ export function Documentos() {
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="mx-auto mb-4 text-muted-foreground" size={48} />
-            <p className="text-muted-foreground">Nenhum documento encontrado</p>
+            <p className="text-muted-foreground">
+              {isMorador
+                ? 'Nenhum documento encontrado em seu nome'
+                : 'Nenhum documento encontrado'}
+            </p>
+            {isMorador && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Para solicitar documentos, entre em contato com a administração da comunidade.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

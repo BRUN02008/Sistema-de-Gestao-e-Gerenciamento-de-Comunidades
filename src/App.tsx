@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'sonner';
+import type { ReactNode } from 'react';
 import { AuthProvider, useAuth } from './app/contexts/AuthContext';
+import type { UserRole } from './app/contexts/AuthContext';
 import { Layout } from './app/components/Layout';
 import { Login } from './app/pages/Login';
 import { Dashboard } from './app/pages/Dashboard';
@@ -13,19 +15,31 @@ import { Investimentos } from './app/pages/Investimentos';
 import { Documentos } from './app/pages/Documentos';
 import { Relatorios } from './app/pages/Relatorios';
 import { Agenda } from './app/pages/Agenda';
+import { MinhaContaFinanceira } from './app/pages/MinhaContaFinanceira';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+interface ProtectedRouteProps {
+  children: ReactNode;
+  allowedRoles?: UserRole[];
+  redirectTo?: string;
+}
+
+function ProtectedRoute({ children, allowedRoles, redirectTo = '/dashboard' }: ProtectedRouteProps) {
+  const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <Layout>{children}</Layout>;
 }
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isMorador = user?.role === 'visualizador';
 
   return (
     <Routes>
@@ -41,10 +55,12 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Rotas exclusivas de admin e técnico */}
       <Route
         path="/moradores"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <Moradores />
           </ProtectedRoute>
         }
@@ -52,7 +68,7 @@ function AppRoutes() {
       <Route
         path="/moradores/novo"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <MoradorForm />
           </ProtectedRoute>
         }
@@ -60,7 +76,7 @@ function AppRoutes() {
       <Route
         path="/moradores/:id"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <MoradorDetalhes />
           </ProtectedRoute>
         }
@@ -68,23 +84,29 @@ function AppRoutes() {
       <Route
         path="/moradores/:id/editar"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <MoradorForm />
           </ProtectedRoute>
         }
       />
+
+      {/* Finanças: admin/técnico vê painel completo; morador é redirecionado */}
       <Route
         path="/financas"
         element={
-          <ProtectedRoute>
-            <Financas />
-          </ProtectedRoute>
+          isMorador
+            ? <Navigate to="/financas/minha-conta" replace />
+            : (
+              <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
+                <Financas />
+              </ProtectedRoute>
+            )
         }
       />
       <Route
         path="/financas/mensalidades"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <Mensalidades />
           </ProtectedRoute>
         }
@@ -92,11 +114,23 @@ function AppRoutes() {
       <Route
         path="/financas/investimentos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <Investimentos />
           </ProtectedRoute>
         }
       />
+
+      {/* Conta pessoal do morador */}
+      <Route
+        path="/financas/minha-conta"
+        element={
+          <ProtectedRoute allowedRoles={['visualizador']}>
+            <MinhaContaFinanceira />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Documentos: todos acessam, mas com filtro por role */}
       <Route
         path="/documentos"
         element={
@@ -105,14 +139,18 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Relatórios: apenas admin e técnico */}
       <Route
         path="/relatorios"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <Relatorios />
           </ProtectedRoute>
         }
       />
+
+      {/* Agenda: todos acessam, mas com permissões diferentes */}
       <Route
         path="/agenda"
         element={
@@ -121,6 +159,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

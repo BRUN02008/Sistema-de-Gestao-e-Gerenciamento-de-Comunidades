@@ -4,8 +4,11 @@ import { Button } from '../components/Button';
 import { mockEventos, type EventoAgenda } from '../data/mockData';
 import { Plus, Calendar as CalendarIcon, Clock, MapPin, User, Filter } from 'lucide-react';
 import { Select } from '../components/Select';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Agenda() {
+  const { user } = useAuth();
+  const isMorador = user?.role === 'visualizador';
   const [eventos] = useState<EventoAgenda[]>(mockEventos);
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
 
@@ -63,12 +66,18 @@ export function Agenda() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-foreground mb-2">Agenda Comunitária</h1>
-          <p className="text-muted-foreground">Eventos e atividades programadas</p>
+          <p className="text-muted-foreground">
+            {isMorador
+              ? 'Confira os eventos e reuniões da sua comunidade'
+              : 'Eventos e atividades programadas'}
+          </p>
         </div>
-        <Button>
-          <Plus size={20} />
-          Novo Evento
-        </Button>
+        {!isMorador && (
+          <Button>
+            <Plus size={20} />
+            Novo Evento
+          </Button>
+        )}
       </div>
 
       <Card>

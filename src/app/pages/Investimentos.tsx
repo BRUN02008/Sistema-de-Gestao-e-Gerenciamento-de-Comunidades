@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
@@ -7,6 +6,7 @@ import { Select } from '../components/Select';
 import { mockInvestimentos, mockDespesas, type Investimento, type Despesa } from '../data/mockData';
 import { ArrowLeft, Plus, TrendingDown, PiggyBank, Wrench, Zap, Droplet, Package } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import type { ReactElement } from 'react';
 
 export function Investimentos() {
   const [aba, setAba] = useState<'investimentos' | 'despesas'>('investimentos');
@@ -36,7 +36,7 @@ export function Investimentos() {
   };
 
   const getCategoriaIconInvestimento = (categoria: string) => {
-    const icons: Record<string, ReactNode> = {
+    const icons: Record<string, ReactElement> = {
       infraestrutura: <Wrench className="text-primary" size={24} />,
       educacao: <Package className="text-secondary" size={24} />,
       saude: <Package className="text-accent" size={24} />,
@@ -47,7 +47,7 @@ export function Investimentos() {
   };
 
   const getCategoriaIconDespesa = (categoria: string) => {
-    const icons: Record<string, ReactNode> = {
+    const icons: Record<string, ReactElement> = {
       manutencao: <Wrench className="text-primary" size={24} />,
       energia: <Zap className="text-accent" size={24} />,
       agua: <Droplet className="text-chart-2" size={24} />,

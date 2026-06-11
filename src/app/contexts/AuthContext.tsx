@@ -7,18 +7,30 @@ export interface User {
   nome: string;
   email: string;
   role: UserRole;
+  moradorId?: string;
+  cpf?: string;
+  familia?: string;
+}
+
+export interface UserAccount {
+  email: string;
+  senha: string;
+  user: User;
 }
 
 interface AuthContextType {
   user: User | null;
+  users: UserAccount[];
   login: (email: string, senha: string) => boolean;
   logout: () => void;
   isAuthenticated: boolean;
+  addUser: (account: Omit<UserAccount, 'user'> & { user: Omit<User, 'id'> }) => { success: boolean; error?: string };
+  removeUser: (id: string) => { success: boolean; error?: string };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const mockUsers: { email: string; senha: string; user: User }[] = [
+const initialUsers: UserAccount[] = [
   {
     email: 'admin@cachoeira.com',
     senha: 'admin123',
@@ -44,41 +56,65 @@ const mockUsers: { email: string; senha: string; user: User }[] = [
     senha: 'visualizador123',
     user: {
       id: '3',
-      nome: 'Ana Costa',
+      nome: 'Sebastiana Costa',
       email: 'visualizador@cachoeira.com',
-      role: 'visualizador'
+      role: 'visualizador',
+      moradorId: '6',
+      cpf: '678.901.234-55',
+      familia: 'Família Costa'
+    }
+  },
+  {
+    email: 'francisco@cachoeira.com',
+    senha: 'morador123',
+    user: {
+      id: '4',
+      nome: 'Francisco Ribeiro da Silva',
+      email: 'francisco@cachoeira.com',
+      role: 'visualizador',
+      moradorId: '1',
+      cpf: '123.456.789-00',
+      familia: 'Família Silva'
     }
   }
 ];
 
+let nextId = 5;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<UserAccount[]>(initialUsers);
 
   const login = (email: string, senha: string): boolean => {
-    const foundUser = mockUsers.find(
-      (u) => u.email === email && u.senha === senha
-    );
-
-    if (foundUser) {
-      setUser(foundUser.user);
+    const found = users.find(u => u.email === email && u.senha === senha);
+    if (found) {
+      setUser(found.user);
       return true;
     }
     return false;
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = () => setUser(null);
+
+  const addUser = (account: Omit<UserAccount, 'user'> & { user: Omit<User, 'id'> }): { success: boolean; error?: string } => {
+    if (users.some(u => u.email === account.email)) {
+      return { success: false, error: 'Já existe um usuário com este e-mail.' };
+    }
+    const newUser: User = { ...account.user, id: String(nextId++) };
+    setUsers(prev => [...prev, { email: account.email, senha: account.senha, user: newUser }]);
+    return { success: true };
+  };
+
+  const removeUser = (id: string): { success: boolean; error?: string } => {
+    if (user?.id === id) {
+      return { success: false, error: 'Você não pode remover sua própria conta.' };
+    }
+    setUsers(prev => prev.filter(u => u.user.id !== id));
+    return { success: true };
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        isAuthenticated: !!user
-      }}
-    >
+    <AuthContext.Provider value={{ user, users, login, logout, isAuthenticated: !!user, addUser, removeUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -86,8 +122,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
