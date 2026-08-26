@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
-import {
-  mockMensalidades,
-  mockInvestimentos,
-  mockFamilias,
-  mockDependentes,
-  mockMoradores,
-  VALOR_MENSALIDADE
-} from '../data/mockData';
+import { VALOR_MENSALIDADE } from '../data/mockData';
+import { useData } from '../contexts/DataContext';
 import {
   Wallet,
   CheckCircle,
@@ -67,9 +61,10 @@ const STATUS_INV_COLORS: Record<string, string> = {
 
 export function MinhaContaFinanceira() {
   const { user } = useAuth();
+  const { mensalidades, investimentos, familias, dependentes: allDependentes, moradores } = useData();
   const [mostrarTodasMensalidades, setMostrarTodasMensalidades] = useState(false);
 
-  const minhasMensalidades = mockMensalidades
+  const minhasMensalidades = mensalidades
     .filter(m => m.moradorId === user?.moradorId)
     .sort((a, b) => b.mesReferencia.localeCompare(a.mesReferencia));
 
@@ -80,9 +75,9 @@ export function MinhaContaFinanceira() {
   const totalPago = pagas.reduce((a, m) => a + m.valor, 0);
   const totalDevido = [...pendentes, ...atrasadas].reduce((a, m) => a + m.valor, 0);
 
-  const familia = mockFamilias.find(f => f.nome === user?.familia);
-  const morador = mockMoradores.find(m => m.id === user?.moradorId);
-  const dependentes = mockDependentes.filter(d => d.moradorResponsavelId === user?.moradorId);
+  const familia = familias.find(f => f.nome === user?.familia);
+  const morador = moradores.find(m => m.id === user?.moradorId);
+  const dependentes = allDependentes.filter(d => d.moradorResponsavelId === user?.moradorId);
 
   const mensalidadesExibidas = mostrarTodasMensalidades
     ? minhasMensalidades
@@ -97,12 +92,12 @@ export function MinhaContaFinanceira() {
       .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   };
 
-  const investimentosPorCategoria = mockInvestimentos.reduce((acc, inv) => {
+  const investimentosPorCategoria = investimentos.reduce((acc, inv) => {
     acc[inv.categoria] = (acc[inv.categoria] || 0) + inv.valor;
     return acc;
   }, {} as Record<string, number>);
 
-  const totalInvestido = mockInvestimentos
+  const totalInvestido = investimentos
     .filter(i => i.status !== 'cancelado')
     .reduce((a, i) => a + i.valor, 0);
 
@@ -319,7 +314,7 @@ export function MinhaContaFinanceira() {
 
           <div className="space-y-4">
             <h4 className="text-sm text-foreground">Projetos da Comunidade</h4>
-            {mockInvestimentos.map((inv) => (
+            {investimentos.map((inv) => (
               <div key={inv.id} className="p-4 border border-border rounded-lg hover:bg-muted/20 transition-colors">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">

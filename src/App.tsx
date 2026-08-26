@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'sonner';
-import type { ReactNode } from 'react';
-import { AuthProvider, useAuth } from './app/contexts/AuthContext';
-import type { UserRole } from './app/contexts/AuthContext';
+import { AuthProvider, useAuth, type UserRole } from './app/contexts/AuthContext';
+import { DataProvider } from './app/contexts/DataContext';
 import { Layout } from './app/components/Layout';
 import { Login } from './app/pages/Login';
 import { Dashboard } from './app/pages/Dashboard';
@@ -18,7 +17,7 @@ import { Agenda } from './app/pages/Agenda';
 import { MinhaContaFinanceira } from './app/pages/MinhaContaFinanceira';
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  children: React.ReactNode;
   allowedRoles?: UserRole[];
   redirectTo?: string;
 }
@@ -169,8 +168,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
-        <Toaster position="top-right" richColors />
+        <DataProvider>
+          <AppRoutes />
+          <Toaster position="top-right" richColors />
+        </DataProvider>
       </AuthProvider>
     </BrowserRouter>
   );

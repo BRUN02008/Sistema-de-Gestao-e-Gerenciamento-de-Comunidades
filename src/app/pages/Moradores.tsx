@@ -3,12 +3,12 @@ import { Link } from 'react-router';
 import { Card, CardContent } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { mockMoradores, type Morador } from '../data/mockData';
-import { Plus, Search, Eye, Edit, Phone, MapPin } from 'lucide-react';
+import { useData } from '../contexts/DataContext';
+import { Plus, Search, Eye, Edit, Phone, MapPin, Car } from 'lucide-react';
 
 export function Moradores() {
   const [busca, setBusca] = useState('');
-  const [moradores] = useState<Morador[]>(mockMoradores);
+  const { moradores } = useData();
 
   const moradoresFiltrados = moradores.filter((morador) =>
     morador.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -29,15 +29,18 @@ export function Moradores() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-foreground mb-2">Moradores</h1>
-          <p className="text-muted-foreground">Gestão de moradores cadastrados</p>
+          <h1 className="text-foreground text-xl md:text-3xl">Moradores</h1>
+          <p className="text-muted-foreground text-xs md:text-sm">
+            {moradores.length} cadastrado{moradores.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Link to="/moradores/novo">
-          <Button>
-            <Plus size={20} />
-            Novo Morador
+        <Link to="/moradores/novo" className="shrink-0">
+          <Button size="sm">
+            <Plus size={18} />
+            <span className="hidden sm:inline">Novo Morador</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </Link>
       </div>
@@ -93,6 +96,15 @@ export function Moradores() {
                 <p className="text-sm text-foreground">{morador.ocupacao}</p>
                 <p className="text-xs text-muted-foreground mt-1">{morador.escolaridade}</p>
               </div>
+
+              {morador.veiculo?.tipo && (
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-accent/10 border border-accent/20 rounded-lg">
+                  <Car size={14} className="text-accent shrink-0" />
+                  <p className="text-xs text-accent truncate">
+                    {[morador.veiculo.tipo, morador.veiculo.modelo, morador.veiculo.placa].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Link to={`/moradores/${morador.id}`} className="flex-1">

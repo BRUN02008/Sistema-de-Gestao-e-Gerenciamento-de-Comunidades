@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, User, Shield, Wrench, Eye, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import type { UserRole } from '../contexts/AuthContext';
-import { mockMoradores, mockFamilias } from '../data/mockData';
+import { useAuth, type UserRole } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import { toast } from 'sonner';
 
 interface GerenciarUsuariosProps {
@@ -48,9 +47,10 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const moradorSelecionado = mockMoradores.find(m => m.id === form.moradorId);
+  const { moradores, familias } = useData();
+  const moradorSelecionado = moradores.find(m => m.id === form.moradorId);
   const familiaDoMorador = moradorSelecionado
-    ? mockFamilias.find(f => f.responsavel === moradorSelecionado.nome)
+    ? familias.find(f => f.responsavel === moradorSelecionado.nome)
     : null;
 
   const validate = () => {
@@ -323,7 +323,7 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
                       <option value="">Selecione um morador...</option>
-                      {mockMoradores.map(m => (
+                      {moradores.map(m => (
                         <option key={m.id} value={m.id}>{m.nome} — {m.cpf}</option>
                       ))}
                     </select>

@@ -12,13 +12,11 @@ import {
   Users
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import {
-  mockMensalidades,
-  mockInvestimentos,
-  mockDespesas
-} from '../data/mockData';
+import { useData } from '../contexts/DataContext';
 
 export function Financas() {
+  const { mensalidades: mockMensalidades, investimentos: mockInvestimentos, despesas: mockDespesas } = useData();
+
   const totalMensalidadesRecebidas = mockMensalidades
     .filter(m => m.status === 'pago')
     .reduce((acc, m) => acc + m.valor, 0);
@@ -195,7 +193,7 @@ export function Financas() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   outerRadius={90}
                   fill="#8884d8"
                   dataKey="value"

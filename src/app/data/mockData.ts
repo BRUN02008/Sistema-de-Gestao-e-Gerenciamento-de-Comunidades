@@ -1,3 +1,10 @@
+export interface Veiculo {
+  tipo: string;
+  modelo: string;
+  cor: string;
+  placa: string;
+}
+
 export interface Morador {
   id: string;
   nome: string;
@@ -11,6 +18,8 @@ export interface Morador {
   endereco: string;
   dataCadastro: string;
   status: 'ativo' | 'inativo';
+  comorbidade?: string;
+  veiculo?: Veiculo;
 }
 
 export interface Familia {
@@ -378,6 +387,33 @@ export interface Despesa {
   responsavel: string;
   comprovante?: string;
 }
+
+export interface RelatorioAtividade {
+  id: string;
+  titulo: string;
+  descricao: string;
+  data: string;
+  responsavel: string;
+  categoria: string;
+  status: 'rascunho' | 'finalizado';
+  imagens: string[];
+}
+
+export interface Oficio {
+  id: string;
+  numero: string;
+  titulo: string;
+  destinatario: string;
+  assunto: string;
+  dataEmissao: string;
+  dataProtocolo?: string;
+  numeroProtocolo?: string;
+  status: 'rascunho' | 'enviado' | 'protocolado' | 'respondido';
+  observacoes?: string;
+}
+
+export const mockRelatorios: RelatorioAtividade[] = [];
+export const mockOficios: Oficio[] = [];
 
 export const VALOR_MENSALIDADE = 50.00;
 

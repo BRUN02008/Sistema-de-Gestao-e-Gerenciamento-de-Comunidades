@@ -1,14 +1,15 @@
 import { useNavigate, useParams, Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
-import { mockMoradores, mockDocumentos } from '../data/mockData';
-import { ArrowLeft, Edit, Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon } from 'lucide-react';
+import { useData } from '../contexts/DataContext';
+import { ArrowLeft, Edit, Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon, HeartPulse, Car } from 'lucide-react';
 
 export function MoradorDetalhes() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const morador = mockMoradores.find((m) => m.id === id);
+  const { moradores, documentos } = useData();
+  const morador = moradores.find((m) => m.id === id);
 
   if (!morador) {
     return (
@@ -37,32 +38,32 @@ export function MoradorDetalhes() {
     return idade;
   };
 
-  const documentosMorador = mockDocumentos.filter(
-    (d) => d.morador === morador.nome
+  const documentosMorador = documentos.filter(
+    (d) => d.moradorId === morador.id || d.morador === morador.nome
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/moradores')}>
-            <ArrowLeft size={20} />
-            Voltar
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" onClick={() => navigate('/moradores')} size="sm">
+            <ArrowLeft size={18} />
+            <span className="hidden sm:inline">Voltar</span>
           </Button>
-          <div>
-            <h1 className="text-foreground mb-2">Perfil do Morador</h1>
-            <p className="text-muted-foreground">Informações detalhadas</p>
+          <div className="min-w-0">
+            <h1 className="text-foreground text-lg md:text-2xl truncate">{morador.nome}</h1>
+            <p className="text-muted-foreground text-xs md:text-sm">Perfil do Morador · {morador.familia}</p>
           </div>
         </div>
-        <Link to={`/moradores/${morador.id}/editar`}>
-          <Button>
-            <Edit size={20} />
-            Editar
+        <Link to={`/moradores/${morador.id}/editar`} className="shrink-0">
+          <Button size="sm">
+            <Edit size={16} />
+            <span className="hidden sm:inline">Editar</span>
           </Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
@@ -168,8 +169,65 @@ export function MoradorDetalhes() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Comorbidade */}
+          {morador.comorbidade && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <HeartPulse size={18} className="text-destructive" />
+                  Saúde
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Comorbidade / Condição de Saúde</p>
+                  <p className="text-foreground">{morador.comorbidade}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Veículo */}
+          {morador.veiculo?.tipo && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car size={18} className="text-accent" />
+                  Acesso ao Balneário
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-accent/5 border border-accent/20 rounded-lg col-span-2">
+                    <p className="text-xs text-muted-foreground mb-0.5">Tipo</p>
+                    <p className="text-foreground text-sm">{morador.veiculo.tipo}</p>
+                  </div>
+                  {morador.veiculo.modelo && (
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-0.5">Modelo</p>
+                      <p className="text-foreground text-sm">{morador.veiculo.modelo}</p>
+                    </div>
+                  )}
+                  {morador.veiculo.cor && (
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-0.5">Cor</p>
+                      <p className="text-foreground text-sm">{morador.veiculo.cor}</p>
+                    </div>
+                  )}
+                  {morador.veiculo.placa && (
+                    <div className="p-3 bg-muted/30 rounded-lg col-span-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Placa / Identificação</p>
+                      <p className="text-foreground font-mono">{morador.veiculo.placa}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
+        {/* Right column: documents */}
         <div>
           <Card>
             <CardHeader>
