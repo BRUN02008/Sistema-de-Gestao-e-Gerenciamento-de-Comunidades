@@ -13,7 +13,7 @@ export function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro('');
 
@@ -22,12 +22,13 @@ export function Login() {
       return;
     }
 
-    const success = login(email, senha);
-    if (success) {
-      navigate('/dashboard');
-    } else {
-      setErro('Email ou senha incorretos');
-    }
+    const result = await login(email, senha);
+
+if (result.success) {
+  navigate('/dashboard');
+} else {
+  setErro(result.error || 'Email ou senha incorretos');
+}
   };
 
   return (
