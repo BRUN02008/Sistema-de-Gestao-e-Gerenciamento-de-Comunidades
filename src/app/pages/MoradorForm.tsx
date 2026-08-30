@@ -13,6 +13,70 @@ const TIPO_VEICULO_OPTIONS = [
   'Motocicleta', 'Bicicleta', 'Carro', 'Caminhonete', 'Outro'
 ];
 
+type SectionHeaderProps = {
+  title: string;
+  icon: React.ReactNode;
+  hasError?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+};
+
+
+
+function SectionHeader({
+  title,
+  icon,
+  isOpen,
+  onToggle,
+  hasError,
+}: SectionHeaderProps) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center justify-between w-full text-left"
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`p-1.5 rounded-lg ${
+            hasError
+              ? 'bg-destructive/10 text-destructive'
+              : 'bg-primary/10 text-primary'
+          }`}
+        >
+          {icon}
+        </span>
+
+        <h3
+          className={`text-sm font-medium ${
+            hasError ? 'text-destructive' : 'text-foreground'
+          }`}
+        >
+          {title}
+        </h3>
+
+        {hasError && (
+          <span className="text-xs text-destructive">
+            · campos obrigatórios em falta
+          </span>
+        )}
+      </div>
+
+      {isOpen ? (
+        <ChevronUp
+          size={16}
+          className="text-muted-foreground"
+        />
+      ) : (
+        <ChevronDown
+          size={16}
+          className="text-muted-foreground"
+        />
+      )}
+    </button>
+  );
+}
+
 export function MoradorForm() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -35,8 +99,13 @@ export function MoradorForm() {
     comorbidade: moradorExistente?.comorbidade || '',
   });
 
-  const [veiculo, setVeiculo] = useState(moradorExistente?.veiculo || emptyVeiculo);
-  const [temVeiculo, setTemVeiculo] = useState(!!moradorExistente?.veiculo?.tipo);
+const [temVeiculo, setTemVeiculo] = useState(
+  Boolean(moradorExistente?.veiculo)
+);
+
+const [veiculo, setVeiculo] = useState(
+  moradorExistente?.veiculo ?? { ...emptyVeiculo }
+);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [novaFamiliaMode, setNovaFamiliaMode] = useState(false);
@@ -98,39 +167,36 @@ navigate('/moradores');
     if (errors[errKey]) setErrors(prev => { const e = { ...prev }; delete e[errKey]; return e; });
   };
 
-  const handleCriarFamilia = () => {
-    if (!novaFamiliaForm.nome.trim()) { setNovaFamiliaErr('Nome da família é obrigatório'); return; }
-    const nova = addFamilia({
-      nome: novaFamiliaForm.nome.trim(),
-      responsavel: novaFamiliaForm.responsavel || formData.nome || 'A definir',
-      endereco: novaFamiliaForm.endereco || '',
-      totalMembros: 1,
-    });
-    handleChange('familia', nova.nome);
-    setNovaFamiliaMode(false);
-    setNovaFamiliaForm({ nome: '', responsavel: '', endereco: '' });
-    setNovaFamiliaErr('');
-    toast.success(`Família "${nova.nome}" criada!`);
-  };
+ const handleCriarFamilia = async () => {
+  if (!novaFamiliaForm.nome.trim()) {
+    setNovaFamiliaErr('Nome da família é obrigatório');
+    return;
+  }
+
+  const nova = await addFamilia({
+    nome: novaFamiliaForm.nome.trim(),
+    responsavel: novaFamiliaForm.responsavel || formData.nome || 'A definir',
+    endereco: novaFamiliaForm.endereco || '',
+    total_membros: 1,
+  });
+
+  handleChange('familia', nova.id);
+
+  setNovaFamiliaMode(false);
+
+  setNovaFamiliaForm({
+    nome: '',
+    responsavel: '',
+    endereco: '',
+  });
+
+  setNovaFamiliaErr('');
+
+  toast.success(`Família "${nova.nome}" criada!`);
+};
 
   const fieldClass = "w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors";
   const labelClass = "block text-sm text-foreground mb-1.5";
-
-  const SectionHeader = ({ title, icon, sectionKey, hasError }: { title: string; icon: React.ReactNode; sectionKey: keyof typeof openSections; hasError?: boolean }) => (
-    <button
-      type="button"
-      onClick={() => toggleSection(sectionKey)}
-      className="flex items-center justify-between w-full text-left"
-    >
-      <div className="flex items-center gap-2">
-        <span className={`p-1.5 rounded-lg ${hasError ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>{icon}</span>
-        <h3 className={`text-sm font-medium ${hasError ? 'text-destructive' : 'text-foreground'}`}>{title}</h3>
-        {hasError && <span className="text-xs text-destructive">· campos obrigatórios em falta</span>}
-      </div>
-      {openSections[sectionKey] ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
-    </button>
-  );
-
   const hasPessoalError = !!(errors.nome || errors.dataNascimento || errors.cpf);
   const hasComunitarioError = !!errors.familia;
   const hasVeiculoError = !!errors.veiculoTipo;
@@ -158,7 +224,13 @@ navigate('/moradores');
         {/* ── Informações Pessoais ── */}
         <Card>
           <CardHeader className="pb-2 pt-4 px-4 md:px-6">
-            <SectionHeader title="Informações Pessoais" icon={<User size={15} />} sectionKey="pessoal" hasError={hasPessoalError} />
+            <SectionHeader
+  title="Informações Pessoais"
+  icon={<User size={15} />}
+  isOpen={openSections.pessoal}
+  onToggle={() => toggleSection('pessoal')}
+  hasError={hasPessoalError}
+/>
           </CardHeader>
           {openSections.pessoal && (
             <CardContent className="px-4 md:px-6 pb-5">
@@ -203,7 +275,13 @@ navigate('/moradores');
         {/* ── Informações Comunitárias ── */}
         <Card>
           <CardHeader className="pb-2 pt-4 px-4 md:px-6">
-            <SectionHeader title="Informações Comunitárias" icon={<Home size={15} />} sectionKey="comunitario" hasError={hasComunitarioError} />
+            <SectionHeader
+  title="Informações Comunitárias"
+  icon={<Home size={15} />}
+  isOpen={openSections.comunitario}
+  onToggle={() => toggleSection('comunitario')}
+  hasError={hasComunitarioError}
+/>
           </CardHeader>
           {openSections.comunitario && (
             <CardContent className="px-4 md:px-6 pb-5">
@@ -292,7 +370,12 @@ navigate('/moradores');
         {/* ── Saúde ── */}
         <Card>
           <CardHeader className="pb-2 pt-4 px-4 md:px-6">
-            <SectionHeader title="Saúde" icon={<HeartPulse size={15} />} sectionKey="saude" />
+            <SectionHeader
+  title="Saúde"
+  icon={<HeartPulse size={15} />}
+  isOpen={openSections.saude}
+  onToggle={() => toggleSection('saude')}
+/>
           </CardHeader>
           {openSections.saude && (
             <CardContent className="px-4 md:px-6 pb-5">
@@ -308,19 +391,41 @@ navigate('/moradores');
         {/* ── Veículo ── */}
         <Card>
           <CardHeader className="pb-2 pt-4 px-4 md:px-6">
-            <SectionHeader title="Veículo — Acesso ao Balneário" icon={<Car size={15} />} sectionKey="veiculo" hasError={hasVeiculoError} />
+           <SectionHeader
+  title="Veículo — Acesso ao Balneário"
+  icon={<Car size={15} />}
+  isOpen={openSections.veiculo}
+  onToggle={() => toggleSection('veiculo')}
+  hasError={hasVeiculoError}
+/>
           </CardHeader>
           {openSections.veiculo && (
             <CardContent className="px-4 md:px-6 pb-5 space-y-3">
               {/* Toggle */}
               <div className="flex items-center gap-3">
                 <button
-                  type="button"
-                  onClick={() => { setTemVeiculo(!temVeiculo); if (temVeiculo) setVeiculo(emptyVeiculo); }}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${temVeiculo ? 'bg-primary' : 'bg-muted-foreground/30'}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${temVeiculo ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
+  type="button"
+  onClick={() => {
+    setTemVeiculo(prev => {
+      const novoEstado = !prev;
+
+      if (!novoEstado) {
+        setVeiculo({ ...emptyVeiculo });
+      }
+
+      return novoEstado;
+    });
+  }}
+  className={`relative w-11 h-6 rounded-full transition-colors ${
+    temVeiculo ? 'bg-primary' : 'bg-muted-foreground/30'
+  }`}
+>
+  <span
+    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+      temVeiculo ? 'translate-x-5' : 'translate-x-0'
+    }`}
+  />
+</button>
                 <span className="text-sm text-foreground">
                   {temVeiculo ? 'Morador possui veículo' : 'Sem veículo cadastrado'}
                 </span>

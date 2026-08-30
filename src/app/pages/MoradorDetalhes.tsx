@@ -2,13 +2,14 @@ import { useNavigate, useParams, Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
 import { useData } from '../contexts/DataContext';
-import { ArrowLeft, Edit, Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon, HeartPulse, Car } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft , Edit, Trash2 , Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon, HeartPulse, Car } from 'lucide-react';
 
 export function MoradorDetalhes() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const { moradores, documentos } = useData();
+  const { moradores, documentos, deleteMorador } = useData();
   const morador = moradores.find((m) => m.id === id);
 
   if (!morador) {
@@ -38,30 +39,70 @@ export function MoradorDetalhes() {
     return idade;
   };
 
+  const handleExcluir = async () => {
+  const confirmar = window.confirm(
+    `Tem certeza que deseja excluir o morador "${morador.nome}"?`
+  );
+
+  if (!confirmar) return;
+
+  try {
+    await deleteMorador(morador.id);
+
+    toast.success('Morador excluído com sucesso!');
+    navigate('/moradores');
+  } catch {
+    toast.error('Não foi possível excluir o morador.');
+  }
+};
+
   const documentosMorador = documentos.filter(
     (d) => d.moradorId === morador.id || d.morador === morador.nome
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" onClick={() => navigate('/moradores')} size="sm">
-            <ArrowLeft size={18} />
-            <span className="hidden sm:inline">Voltar</span>
-          </Button>
-          <div className="min-w-0">
-            <h1 className="text-foreground text-lg md:text-2xl truncate">{morador.nome}</h1>
-            <p className="text-muted-foreground text-xs md:text-sm">Perfil do Morador · {morador.familia}</p>
-          </div>
-        </div>
-        <Link to={`/moradores/${morador.id}/editar`} className="shrink-0">
-          <Button size="sm">
-            <Edit size={16} />
-            <span className="hidden sm:inline">Editar</span>
-          </Button>
-        </Link>
+  <div className="flex items-start justify-between gap-3">
+
+    <div className="flex items-center gap-3 min-w-0">
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/moradores')}
+        size="sm"
+      >
+        <ArrowLeft size={18} />
+        <span className="hidden sm:inline">Voltar</span>
+      </Button>
+
+      <div className="min-w-0">
+        <h1 className="text-foreground text-lg md:text-2xl truncate">
+          {morador.nome}
+        </h1>
+
+        <p className="text-muted-foreground text-xs md:text-sm">
+          Perfil do Morador · {morador.familia}
+        </p>
       </div>
+    </div>
+
+    {/* BOTÕES */}
+    <div className="flex items-center gap-2 shrink-0">
+
+      <Link to={`/moradores/${morador.id}/editar`}>
+        <Button size="sm">
+          <Edit size={16} />
+          <span className="hidden sm:inline">Editar</span>
+        </Button>
+      </Link>
+
+      <Button onClick={handleExcluir} size="sm">
+        <Trash2 size={18} />
+        <span className="hidden sm:inline">Excluir</span>
+      </Button>
+
+    </div>
+
+  </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 space-y-6">

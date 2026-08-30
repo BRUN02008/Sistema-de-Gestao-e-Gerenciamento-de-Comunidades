@@ -26,7 +26,7 @@ export interface Familia {
   id: string;
   nome: string;
   responsavel: string;
-  totalMembros: number;
+  total_membros: number;
   endereco: string;
 }
 
@@ -160,42 +160,42 @@ export const mockFamilias: Familia[] = [
     id: '1',
     nome: 'Família Silva',
     responsavel: 'Francisco Ribeiro da Silva',
-    totalMembros: 5,
+    total_membros: 5,
     endereco: 'Rua das Palmeiras, s/n'
   },
   {
     id: '2',
     nome: 'Família Souza',
     responsavel: 'Maria das Graças Souza',
-    totalMembros: 4,
+    total_membros: 4,
     endereco: 'Rua do Rio, s/n'
   },
   {
     id: '3',
     nome: 'Família Santos',
     responsavel: 'João Pedro Santos',
-    totalMembros: 6,
+    total_membros: 6,
     endereco: 'Travessa da Mata, s/n'
   },
   {
     id: '4',
     nome: 'Família Ferreira',
     responsavel: 'Ana Paula Ferreira',
-    totalMembros: 3,
+    total_membros: 3,
     endereco: 'Rua da Escola, s/n'
   },
   {
     id: '5',
     nome: 'Família Lima',
     responsavel: 'Carlos Alberto Lima',
-    totalMembros: 7,
+    total_membros: 7,
     endereco: 'Beira do Rio, s/n'
   },
   {
     id: '6',
     nome: 'Família Costa',
     responsavel: 'Sebastiana Costa',
-    totalMembros: 2,
+    total_membros: 2,
     endereco: 'Rua Central, s/n'
   }
 ];

@@ -54,14 +54,14 @@ async function renovarToken(): Promise<string | null> {
 }
 
 
-async function apiFetch(
+async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {},
   tentarRenovar = true
-) {
-  let token = localStorage.getItem(
-    'sisgest_access'
-  );
+): Promise<T> {
+const token = localStorage.getItem(
+  'sisgest_access'
+);
 
   const headers = new Headers(
     options.headers
@@ -158,45 +158,59 @@ async function apiFetch(
    * ============================================================
    */
 
-  const text = await response.text();
+const text = await response.text();
 
-  let data: any = null;
+let data: unknown;
 
-  try {
-    data = text
-      ? JSON.parse(text)
-      : null;
-  } catch {
-    data = text;
+try {
+  data = text ? JSON.parse(text) : null;
+} catch {
+  data = text;
+}
+
+
+/*
+ * ============================================================
+ * ERROS
+ * ============================================================
+ */
+
+if (!response.ok) {
+
+  console.error(
+    'ERRO COMPLETO DA API:',
+    data
+  );
+
+  let mensagem =
+    'Erro ao comunicar com o servidor.';
+
+  if (
+    typeof data === 'object' &&
+    data !== null
+  ) {
+
+    const erro = data as {
+      detail?: string;
+      error?: string;
+    };
+
+    mensagem =
+      erro.detail ||
+      erro.error ||
+      JSON.stringify(data);
+
+  } else if (
+    typeof data === 'string'
+  ) {
+
+    mensagem = data;
   }
 
+  throw new Error(mensagem);
+}
 
-  /*
-   * ============================================================
-   * ERROS
-   * ============================================================
-   */
-
-  if (!response.ok) {
-
-    console.error(
-      'ERRO COMPLETO DA API:',
-      data
-    );
-
-    throw new Error(
-      data?.detail ||
-      data?.error ||
-      (
-        typeof data === 'object'
-          ? JSON.stringify(data)
-          : data
-      ) ||
-      'Erro ao comunicar com o servidor.'
-    );
-  }
-
-  return data;
+return data as T;
 }
 
 
@@ -258,4 +272,4 @@ export const api = {
         method: 'DELETE',
       }
     ),
-};
+}; 

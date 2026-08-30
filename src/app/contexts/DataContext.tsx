@@ -44,8 +44,13 @@ function load<T>(key: string, fallback: T): T {
 
 function save<T>(key: string, value: T) {
   try {
-    localStorage.setItem(`sisgest_${key}`, JSON.stringify(value));
-  } catch {}
+    localStorage.setItem(
+      `sisgest_${key}`,
+      JSON.stringify(value)
+    );
+  } catch (error) {
+    console.error('Erro ao salvar no localStorage:', error);
+  }
 }
 
 interface DataContextType {
@@ -61,7 +66,9 @@ interface DataContextType {
 
   // Famílias
   familias: Familia[];
-  addFamilia: (f: Omit<Familia, 'id'>) => Familia;
+  addFamilia: (
+  f: Omit<Familia, 'id'>
+) => Promise<Familia>;
   updateFamilia: (f: Familia) => void;
 
   // Atividades
@@ -131,14 +138,12 @@ export function DataProvider({
    */
 
   const [moradores, setMoradores] = useState<Morador[]>([]);
-
-  const [moradoresCarregados, setMoradoresCarregados] =
-    useState(false);
+  
 
   useEffect(() => {
     async function carregarMoradores() {
       try {
-        const data = await api.get<any[]>('/moradores/');
+       const data = (await api.get('/moradores/')) as Morador[];
 
         /*
          * Converte os IDs do Django para string,
@@ -173,8 +178,6 @@ export function DataProvider({
         setMoradores(
           load('moradores', [])
         );
-      } finally {
-        setMoradoresCarregados(true);
       }
     }
 
@@ -189,10 +192,30 @@ export function DataProvider({
    * Ainda permanecem no localStorage por enquanto.
    */
 
-  const [familias, setFamilias] =
-    useState<Familia[]>(() =>
-      load('familias', mockFamilias)
-    );
+  const [familias, setFamilias] = useState<Familia[]>([]);
+
+useEffect(() => {
+  async function carregarFamilias() {
+    try {
+      const data = await api.get('/familias/');
+
+      if (Array.isArray(data)) {
+        setFamilias(data);
+      } else {
+        setFamilias([]);
+      }
+    } catch (error) {
+      console.error(
+        'Erro ao carregar famílias do Django:',
+        error
+      );
+
+      setFamilias([]);
+    }
+  }
+
+  carregarFamilias();
+}, []);
 
   const [atividades] =
     useState<Atividade[]>(() =>
@@ -250,7 +273,7 @@ export function DataProvider({
       m: Omit<Morador, 'id' | 'dataCadastro'>
     ): Promise<Morador> => {
       try {
-        const data = await api.post<any>(
+        const data = (await api.post(
           '/moradores/',
           {
             nome: m.nome,
@@ -266,7 +289,7 @@ export function DataProvider({
             comorbidade: m.comorbidade,
             veiculo: m.veiculo,
           }
-        );
+        )) as Morador;
 
         const novo: Morador = {
           ...m,
@@ -300,7 +323,7 @@ export function DataProvider({
   const updateMorador = useCallback(
     async (m: Morador): Promise<void> => {
       try {
-        const data = await api.put<any>(
+        const data = (await api.put(
           `/moradores/${m.id}/`,
           {
             nome: m.nome,
@@ -316,7 +339,7 @@ export function DataProvider({
             comorbidade: m.comorbidade,
             veiculo: m.veiculo,
           }
-        );
+        )) as Morador;
 
         const atualizado: Morador = {
           ...m,
@@ -348,32 +371,18 @@ export function DataProvider({
     []
   );
 
-  const deleteMorador = useCallback(
-    async (id: string): Promise<void> => {
-      try {
-        await api.delete(`/moradores/${id}/`);
+  const deleteMorador = useCallback(async (id: string): Promise<void> => {
+  try {
+    await api.delete(`/moradores/${id}/`);
 
-        setMoradores((prev) => {
-          const next = prev.filter(
-            (x) => x.id !== id
-          );
-
-          save('moradores', next);
-
-          return next;
-        });
-      } catch (error) {
-        console.error(
-          'Erro ao excluir morador:',
-          error
-        );
-
-        throw error;
-      }
-    },
-    []
-  );
-
+    setMoradores(prev =>
+      prev.filter(m => m.id !== id)
+    );
+  } catch (error) {
+    console.error('Erro ao excluir morador:', error);
+    throw error;
+  }
+}, []);
   /*
    * ============================================================
    * FAMÍLIAS
@@ -381,24 +390,35 @@ export function DataProvider({
    */
 
   const addFamilia = useCallback(
-    (f: Omit<Familia, 'id'>): Familia => {
+  async (f: Omit<Familia, 'id'>): Promise<Familia> => {
+    try {
+      const data = (await api.post('/familias/', {
+        nome: f.nome,
+        responsavel: f.responsavel,
+        endereco: f.endereco,
+        total_membros: f.total_membros,
+      })) as Familia;
+
       const nova: Familia = {
         ...f,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+        ...data,
+        id: String(data.id),
       };
 
-      setFamilias((prev) => {
-        const next = [...prev, nova];
-        save('familias', next);
-        return next;
-      });
+      setFamilias((prev) => [...prev, nova]);
 
       return nova;
-    },
-    []
-  );
+    } catch (error) {
+      console.error(
+        'Erro ao cadastrar família:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
 
   const updateFamilia = useCallback(
     (f: Familia) => {
