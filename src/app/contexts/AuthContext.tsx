@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       const data = await response.json();
-
+      console.log('RESPOSTA DO LOGIN:', data);
       if (!response.ok) {
         return {
           success: false,
@@ -89,6 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'sisgest_access',
         loginData.access
       );
+
+      console.log('ACCESS RECEBIDO:', loginData.access);
+console.log(
+  'ACCESS SALVO:',
+  localStorage.getItem('sisgest_access')
+);  
 
       localStorage.setItem(
         'sisgest_refresh',

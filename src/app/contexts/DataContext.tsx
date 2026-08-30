@@ -19,7 +19,7 @@ import {
   type Despesa,
   type RelatorioAtividade,
   type Oficio,
-  mockFamilias,
+
   mockAtividades,
   mockDocumentos,
   mockDependentes,
@@ -31,7 +31,7 @@ import {
   mockOficios,
 } from '../data/mockData';
 
-import { api } from '../services/api';
+import { api } from '../../services/api';
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -52,7 +52,9 @@ interface DataContextType {
   // Moradores
   moradores: Morador[];
   addMorador: (
+    
     m: Omit<Morador, 'id' | 'dataCadastro'>
+
   ) => Promise<Morador>;
   updateMorador: (m: Morador) => Promise<void>;
   deleteMorador: (id: string) => Promise<void>;

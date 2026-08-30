@@ -57,7 +57,7 @@ export function MoradorForm() {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -75,13 +75,16 @@ export function MoradorForm() {
     };
 
     if (isEditing && moradorExistente) {
-      updateMorador({ ...moradorExistente, ...payload });
-      toast.success('Morador atualizado com sucesso!');
-    } else {
-      addMorador(payload);
-      toast.success('Morador cadastrado com sucesso!');
-    }
-    navigate('/moradores');
+  await updateMorador({ ...moradorExistente, ...payload });
+
+  toast.success('Morador atualizado com sucesso!');
+} else {
+  await addMorador(payload);
+
+  toast.success('Morador cadastrado com sucesso!');
+}
+
+navigate('/moradores');
   };
 
   const handleChange = (field: string, value: string) => {
@@ -214,7 +217,7 @@ export function MoradorForm() {
                       <div className="flex gap-2">
                         <select value={formData.familia} onChange={e => handleChange('familia', e.target.value)} className={`${fieldClass} flex-1`}>
                           <option value="">Selecione uma família</option>
-                          {familias.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
+                          {familias.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                         </select>
                         <button type="button" onClick={() => setNovaFamiliaMode(true)}
                           className="px-3 py-2.5 text-xs border border-dashed border-primary text-primary rounded-lg hover:bg-primary/5 whitespace-nowrap flex items-center gap-1 shrink-0">
