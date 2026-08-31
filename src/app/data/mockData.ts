@@ -24,7 +24,7 @@ export interface Morador {
 
 export interface Familia {
   id: string;
-  nome: string;
+  nome: string; 
   responsavel: string;
   total_membros: number;
   endereco: string;

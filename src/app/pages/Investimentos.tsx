@@ -26,19 +26,35 @@ const STATUS_COLORS: Record<string, string> = {
   planejado: 'bg-secondary/20 text-secondary', cancelado: 'bg-destructive/20 text-destructive'
 };
 
-const invIcon = (cat: string) => {
-  const map: Record<string, JSX.Element> = {
-    infraestrutura: <Wrench className="text-primary" size={24} />,
-    educacao: <Package className="text-secondary" size={24} />,
-    saude: <Package className="text-accent" size={24} />,
-    meio_ambiente: <Package className="text-chart-5" size={24} />,
-    outros: <Package className="text-muted-foreground" size={24} />
+import type { ReactElement } from 'react';
+
+const invIcon = (cat: string): ReactElement => {
+  const map: Record<string, ReactElement> = {
+    infraestrutura: (
+      <Wrench className="text-primary" size={24} />
+    ),
+    educacao: (
+      <Package className="text-secondary" size={24} />
+    ),
+    saude: (
+      <Package className="text-accent" size={24} />
+    ),
+    meio_ambiente: (
+      <Package className="text-chart-5" size={24} />
+    ),
+    outros: (
+      <Package
+        className="text-muted-foreground"
+        size={24}
+      />
+    ),
   };
+
   return map[cat] || map.outros;
 };
 
-const despIcon = (cat: string) => {
-  const map: Record<string, JSX.Element> = {
+const despIcon = (cat: string): ReactElement => {
+  const map: Record<string, ReactElement> = {
     manutencao: <Wrench className="text-primary" size={24} />,
     energia: <Zap className="text-accent" size={24} />,
     agua: <Droplet className="text-chart-2" size={24} />,

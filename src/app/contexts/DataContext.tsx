@@ -24,8 +24,6 @@ import {
   mockDocumentos,
   mockDependentes,
   mockEventos,
-  mockMensalidades,
-  mockInvestimentos,
   mockDespesas,
   mockRelatorios,
   mockOficios,
@@ -91,18 +89,31 @@ deleteFamilia: (id: string) => Promise<void>;
 
   // Mensalidades
   mensalidades: Mensalidade[];
-  updateMensalidade: (m: Mensalidade) => void;
-  addMensalidade: (m: Omit<Mensalidade, 'id'>) => Mensalidade;
-  deleteMensalidade: (id: string) => void;
+  updateMensalidade: (m: Mensalidade) => Promise<void>;
+  addMensalidade: (
+  m: Omit<Mensalidade, 'id'>
+) => Promise<Mensalidade>;
+  deleteMensalidade: (id: string) => Promise<void>;
 
   // Investimentos
   investimentos: Investimento[];
-  addInvestimento: (i: Omit<Investimento, 'id'>) => Investimento;
-  updateInvestimento: (i: Investimento) => void;
+  addInvestimento: (
+  i: Omit<Investimento, 'id'>
+) => Promise<Investimento>;
+
+updateInvestimento: (
+  i: Investimento
+) => Promise<void>;
+
+deleteInvestimento: (
+  id: string
+) => Promise<void>;
 
   // Despesas
   despesas: Despesa[];
-  addDespesa: (d: Omit<Despesa, 'id'>) => Despesa;
+  addDespesa: (
+  d: Omit<Despesa, 'id'>
+) => Despesa;
   updateDespesa: (d: Despesa) => void;
   deleteDespesa: (id: string) => void;
 
@@ -124,6 +135,29 @@ deleteFamilia: (id: string) => Promise<void>;
 const DataContext = createContext<DataContextType | undefined>(
   undefined
 );
+
+interface MensalidadeAPI {
+  id: number | string;
+  familia: number | string;
+  mes_referencia: string;
+  valor: number | string;
+  status: 'pago' | 'pendente' | 'atrasado';
+  data_vencimento: string;
+  data_pagamento?: string | null;
+  metodo_pagamento?: 'dinheiro' | 'pix' | 'transferencia' | null;
+}
+
+type InvestimentoAPI = {
+  id: number | string;
+  titulo: string;
+  descricao: string;
+  categoria: Investimento['categoria'];
+  valor: number | string;
+  data: string;
+  status: Investimento['status'];
+  responsavel: string;
+  observacoes?: string | null;
+};
 
 export function DataProvider({
   children,
@@ -238,20 +272,103 @@ useEffect(() => {
       load('eventos', mockEventos)
     );
 
-  const [mensalidades, setMensalidades] =
-    useState<Mensalidade[]>(() =>
-      load('mensalidades', mockMensalidades)
-    );
+  const [mensalidades, setMensalidades] = useState<Mensalidade[]>([]);
 
-  const [investimentos, setInvestimentos] =
-    useState<Investimento[]>(() =>
-      load('investimentos', mockInvestimentos)
-    );
+  useEffect(() => {
+  async function carregarMensalidades() {
+    try {
+      const data = await api.get('/mensalidades/');
 
-  const [despesas, setDespesas] =
-    useState<Despesa[]>(() =>
-      load('despesas', mockDespesas)
-    );
+      if (!Array.isArray(data)) {
+        setMensalidades([]);
+        return;
+      }
+
+      const mensalidadesApi: Mensalidade[] = (
+        data as MensalidadeAPI[]
+      ).map((m) => {
+        const morador = moradores.find(
+          (morador) =>
+            String(morador.familia) === String(m.familia)
+        );
+
+        return {
+          id: String(m.id),
+          moradorId: morador?.id ?? '',
+          moradorNome: morador?.nome ?? '',
+          familia: morador?.familia ?? String(m.familia),
+          valor: Number(m.valor),
+          mesReferencia: m.mes_referencia,
+          dataVencimento: m.data_vencimento,
+          dataPagamento: m.data_pagamento ?? undefined,
+          status: m.status,
+          metodoPagamento:
+            m.metodo_pagamento ?? undefined,
+        };
+      });
+
+      setMensalidades(mensalidadesApi);
+      save('mensalidades', mensalidadesApi);
+    } catch (error) {
+      console.error(
+        'Erro ao carregar mensalidades do Django:',
+        error
+      );
+
+     setMensalidades([]);
+    }
+  }
+
+  carregarMensalidades();
+}, [moradores]);
+   
+const [investimentos, setInvestimentos] =
+  useState<Investimento[]>([]);
+
+useEffect(() => {
+  async function carregarInvestimentos() {
+    try {
+      const data = (await api.get(
+        '/investimentos/'
+      )) as InvestimentoAPI[];
+
+      const investimentosApi: Investimento[] = data.map(
+        (i) => ({
+          id: String(i.id),
+          titulo: i.titulo,
+          descricao: i.descricao,
+          categoria: i.categoria,
+          valor: Number(i.valor),
+          data: i.data,
+          status: i.status,
+          responsavel: i.responsavel,
+          observacoes:
+            i.observacoes ?? undefined,
+        })
+      );
+
+      setInvestimentos(investimentosApi);
+
+      save('investimentos', investimentosApi);
+    } catch (error) {
+      console.error(
+        'Erro ao carregar investimentos do Django:',
+        error
+      );
+
+      setInvestimentos(
+        load('investimentos', [])
+      );
+    }
+  }
+
+  carregarInvestimentos();
+}, []);
+
+const [despesas, setDespesas] =
+  useState<Despesa[]>(() =>
+    load('despesas', mockDespesas)
+  );
 
   const [relatorios, setRelatorios] =
     useState<RelatorioAtividade[]>(() =>
@@ -263,6 +380,94 @@ useEffect(() => {
       load('oficios', mockOficios)
     );
 
+
+
+    useEffect(() => {
+  async function carregarMensalidades() {
+    try {
+      const data = await api.get('/mensalidades/');
+
+      if (!Array.isArray(data)) {
+        setMensalidades([]);
+        return;
+      }
+
+      const mensalidadesApi: Mensalidade[] =
+        (data as MensalidadeAPI[]).map((m) => ({
+          id: String(m.id),
+
+          moradorId: '',
+          moradorNome: '',
+          familia: String(m.familia),
+
+          mesReferencia: m.mes_referencia,
+          valor: Number(m.valor),
+
+          status: m.status,
+
+          dataVencimento: m.data_vencimento,
+
+          dataPagamento:
+            m.data_pagamento || undefined,
+
+          metodoPagamento:
+            m.metodo_pagamento || undefined,
+        }));
+
+      setMensalidades(mensalidadesApi);
+    } catch (error) {
+      console.error(
+        'Erro ao carregar mensalidades do Django:',
+        error
+      );
+
+      setMensalidades([]);
+    }
+  }
+
+  carregarMensalidades();
+}, []);
+
+
+
+
+
+useEffect(() => {
+  async function carregarInvestimentos() {
+    try {
+      const data = await api.get('/investimentos/');
+
+      if (!Array.isArray(data)) {
+        setInvestimentos([]);
+        return;
+      }
+
+      const investimentosApi: Investimento[] =
+        (data as InvestimentoAPI[]).map((i) => ({
+          id: String(i.id),
+          titulo: i.titulo,
+          categoria: i.categoria,
+          valor: Number(i.valor),
+          data: i.data,
+          responsavel: i.responsavel,
+          status: i.status,
+          descricao: i.descricao,
+          observacoes: i.observacoes ?? undefined,
+        }));
+
+      setInvestimentos(investimentosApi);
+    } catch (error) {
+      console.error(
+        'Erro ao carregar investimentos do Django:',
+        error
+      );
+
+      setInvestimentos([]);
+    }
+  }
+
+  carregarInvestimentos();
+}, []);
   /*
    * ============================================================
    * MORADORES
@@ -556,54 +761,167 @@ useEffect(() => {
    */
 
   const updateMensalidade = useCallback(
-    (m: Mensalidade) => {
-      setMensalidades((prev) => {
-        const next = prev.map((x) =>
-          x.id === m.id ? m : x
-        );
+  async (m: Mensalidade): Promise<void> => {
+    try {
+      const data = await api.put(
+        `/mensalidades/${m.id}/`,
+        {
+          familia: Number(m.familia),
+          mes_referencia: m.mesReferencia,
+          valor: m.valor,
+          status: m.status,
+          data_vencimento: m.dataVencimento,
+          data_pagamento: m.dataPagamento ?? null,
+          metodo_pagamento: m.metodoPagamento ?? null,
+        }
+      ) as MensalidadeAPI;
 
-        save('mensalidades', next);
-
-        return next;
-      });
-    },
-    []
-  );
-
-  const addMensalidade = useCallback(
-    (m: Omit<Mensalidade, 'id'>): Mensalidade => {
-      const nova = {
+      const atualizada: Mensalidade = {
         ...m,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+        id: String(data.id),
+        familia: String(data.familia),
+        mesReferencia:
+          data.mes_referencia ?? m.mesReferencia,
+        valor:
+          Number(data.valor ?? m.valor),
+        status:
+          data.status ?? m.status,
+        dataVencimento:
+          data.data_vencimento ?? m.dataVencimento,
+        dataPagamento:
+          data.data_pagamento ?? m.dataPagamento,
+        metodoPagamento:
+          data.metodo_pagamento ??
+          m.metodoPagamento,
       };
 
-      setMensalidades((prev) => {
+      setMensalidades((prev) =>
+        prev.map((x) =>
+          x.id === atualizada.id
+            ? atualizada
+            : x
+        )
+      );
+
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar mensalidade:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
+
+  
+
+  const deleteMensalidade = useCallback(
+  async (id: string) => {
+    try {
+      await api.delete(
+        `/mensalidades/${id}/`
+      );
+
+      setMensalidades(prev =>
+        prev.filter(x => x.id !== id)
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao excluir mensalidade:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);const addMensalidade = useCallback(
+  async (
+    m: Omit<Mensalidade, 'id'>
+  ): Promise<Mensalidade> => {
+    try {
+      const data = (await api.post(
+        '/mensalidades/',
+        {
+          morador: Number(m.moradorId),
+          mes_referencia: m.mesReferencia,
+          data_vencimento: m.dataVencimento,
+          valor: m.valor,
+          status: m.status,
+          data_pagamento: m.dataPagamento,
+          metodo_pagamento: m.metodoPagamento,
+        }
+      )) as {
+        id: number | string;
+        morador?: number | string;
+        familia?: number | string;
+        mes_referencia?: string;
+        data_vencimento?: string;
+        valor?: number;
+        status?: Mensalidade['status'];
+        data_pagamento?: string;
+        metodo_pagamento?: string;
+      };
+
+      const nova: Mensalidade = {
+        ...m,
+
+        id: String(data.id),
+
+        moradorId: String(
+          data.morador ?? m.moradorId
+        ),
+
+        moradorNome: m.moradorNome,
+
+        familia: String(
+          data.familia ?? m.familia
+        ),
+
+        mesReferencia:
+          data.mes_referencia ?? m.mesReferencia,
+
+        dataVencimento:
+          data.data_vencimento ?? m.dataVencimento,
+
+        valor:
+          data.valor ?? m.valor,
+
+        status:
+          data.status ?? m.status,
+
+        dataPagamento:
+          data.data_pagamento ?? m.dataPagamento,
+
+        metodoPagamento:
+          data.metodo_pagamento === 'dinheiro' ||
+          data.metodo_pagamento === 'pix' ||
+          data.metodo_pagamento === 'transferencia'
+            ? data.metodo_pagamento
+            : m.metodoPagamento,
+      };
+
+      setMensalidades(prev => {
         const next = [...prev, nova];
         save('mensalidades', next);
         return next;
       });
 
       return nova;
-    },
-    []
-  );
 
-  const deleteMensalidade = useCallback(
-    (id: string) => {
-      setMensalidades((prev) => {
-        const next = prev.filter(
-          (x) => x.id !== id
-        );
+    } catch (error) {
+      console.error(
+        'Erro ao cadastrar mensalidade:',
+        error
+      );
 
-        save('mensalidades', next);
-
-        return next;
-      });
-    },
-    []
-  );
+      throw error;
+    }
+  },
+  []
+);
 
   /*
    * ============================================================
@@ -611,40 +929,141 @@ useEffect(() => {
    * ============================================================
    */
 
-  const addInvestimento = useCallback(
-    (i: Omit<Investimento, 'id'>): Investimento => {
-      const novo = {
-        ...i,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+ const addInvestimento = useCallback(
+  async (
+    i: Omit<Investimento, 'id'>
+  ): Promise<Investimento> => {
+    try {
+      const data = (await api.post(
+        '/investimentos/',
+        {
+          titulo: i.titulo,
+          descricao: i.descricao,
+          categoria: i.categoria,
+          valor: i.valor,
+          data: i.data,
+          responsavel: i.responsavel,
+          status: i.status,
+          observacoes: i.observacoes,
+        }
+      )) as InvestimentoAPI;
+
+      const novo: Investimento = {
+        id: String(data.id),
+        titulo: data.titulo,
+        descricao: data.descricao,
+        categoria: data.categoria,
+        valor: Number(data.valor),
+        data: data.data,
+        status: data.status,
+        responsavel: data.responsavel,
+        observacoes:
+          data.observacoes ?? undefined,
       };
 
       setInvestimentos((prev) => {
         const next = [...prev, novo];
+
         save('investimentos', next);
+
         return next;
       });
 
       return novo;
-    },
-    []
-  );
+    } catch (error) {
+      console.error(
+        'Erro ao cadastrar investimento:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
+
 
   const updateInvestimento = useCallback(
-    (i: Investimento) => {
+  async (i: Investimento): Promise<void> => {
+    try {
+      const data = (await api.put(
+        `/investimentos/${i.id}/`,
+        {
+          titulo: i.titulo,
+          descricao: i.descricao,
+          categoria: i.categoria,
+          valor: i.valor,
+          data: i.data,
+          responsavel: i.responsavel,
+          status: i.status,
+          observacoes: i.observacoes,
+        }
+      )) as InvestimentoAPI;
+
+      const atualizada: Investimento = {
+        id: String(data.id),
+        titulo: data.titulo,
+        descricao: data.descricao,
+        categoria: data.categoria,
+        valor: Number(data.valor),
+        data: data.data,
+        status: data.status,
+        responsavel: data.responsavel,
+        observacoes:
+          data.observacoes ?? undefined,
+      };
+
       setInvestimentos((prev) => {
         const next = prev.map((x) =>
-          x.id === i.id ? i : x
+          x.id === atualizada.id
+            ? atualizada
+            : x
         );
 
         save('investimentos', next);
 
         return next;
       });
-    },
-    []
-  );
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar investimento:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
+
+
+const deleteInvestimento = useCallback(
+  async (id: string): Promise<void> => {
+    try {
+      await api.delete(
+        `/investimentos/${id}/`
+      );
+
+      setInvestimentos((prev) => {
+        const next = prev.filter(
+          (i) => i.id !== id
+        );
+
+        save('investimentos', next);
+
+        return next;
+      });
+    } catch (error) {
+      console.error(
+        'Erro ao excluir investimento:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
 
   /*
    * ============================================================
@@ -652,8 +1071,8 @@ useEffect(() => {
    * ============================================================
    */
 
-  const addDespesa = useCallback(
-    (d: Omit<Despesa, 'id'>): Despesa => {
+ const addDespesa = useCallback(
+  (d: Omit<Despesa, 'id'>): Despesa => {
       const nova = {
         ...d,
         id: `${Date.now()}-${Math.random()
@@ -850,6 +1269,7 @@ useEffect(() => {
         investimentos,
         addInvestimento,
         updateInvestimento,
+        deleteInvestimento,
 
         despesas,
         addDespesa,

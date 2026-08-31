@@ -21,8 +21,18 @@ export function Mensalidades() {
   const [addModal, setAddModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const emptyAdd = { moradorId: '', moradorNome: '', familia: '', mesReferencia: '', dataVencimento: '', valor: String(VALOR_MENSALIDADE), status: 'pendente' as Mensalidade['status'], metodoPagamento: '', dataPagamento: '' };
-  const [addForm, setAddForm] = useState(emptyAdd);
+  const emptyAdd = {
+  moradorId: '',
+  moradorNome: '',
+  familia: '',
+  mesReferencia: '',
+  dataVencimento: '',
+  valor: String(VALOR_MENSALIDADE),
+  status: 'pendente' as Mensalidade['status'],
+  metodoPagamento: undefined as Mensalidade['metodoPagamento'],
+  dataPagamento: ''
+};
+ const [addForm, setAddForm] = useState(emptyAdd);
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
 
   // ─── Filtros ──────────────────────────────────────────────
@@ -51,10 +61,27 @@ export function Mensalidades() {
     pago: 'bg-primary/20 text-primary', pendente: 'bg-accent/20 text-accent', atrasado: 'bg-destructive/20 text-destructive'
   }[status] || '');
 
-  const handleRegistrarPagamento = (mensalidade: Mensalidade) => {
-    updateMensalidade({ ...mensalidade, status: 'pago', dataPagamento: new Date().toISOString().split('T')[0], metodoPagamento: 'dinheiro' });
-    toast.success('Pagamento registrado com sucesso!');
-  };
+  const handleRegistrarPagamento = async (
+  mensalidade: Mensalidade
+) => {
+  try {
+    await updateMensalidade({
+      ...mensalidade,
+      status: 'pago',
+      dataPagamento:
+        new Date().toISOString().split('T')[0],
+      metodoPagamento: 'dinheiro',
+    });
+
+    toast.success(
+      'Pagamento registrado com sucesso!'
+    );
+  } catch {
+    toast.error(
+      'Não foi possível registrar o pagamento.'
+    );
+  }
+};
 
   const mensalidadesOrdenadas = [...mensalidadesFiltradas].sort((a, b) => {
     if (a.status === 'atrasado' && b.status !== 'atrasado') return -1;
@@ -65,42 +92,88 @@ export function Mensalidades() {
   });
 
   // ─── Edição ───────────────────────────────────────────────
-  const handleSaveEdit = () => {
-    if (!editModal) return;
-    updateMensalidade(editModal);
-    toast.success('Mensalidade atualizada!');
+  const handleSaveEdit = async () => {
+  if (!editModal) return;
+
+  try {
+    await updateMensalidade(editModal);
+
+    toast.success(
+      'Mensalidade atualizada!'
+    );
+
     setEditModal(null);
-  };
+  } catch {
+    toast.error(
+      'Erro ao atualizar mensalidade.'
+    );
+  }
+};
 
   // ─── Nova mensalidade ─────────────────────────────────────
-  const validateAdd = () => {
-    const e: Record<string, string> = {};
-    if (!addForm.moradorId) e.moradorId = 'Selecione o morador';
-    if (!addForm.mesReferencia) e.mesReferencia = 'Mês de referência é obrigatório';
-    if (!addForm.dataVencimento) e.dataVencimento = 'Data de vencimento é obrigatória';
-    if (!addForm.valor || isNaN(Number(addForm.valor))) e.valor = 'Valor inválido';
-    return e;
-  };
+    const validateAdd = () => {
+      const e: Record<string, string> = {};
+      if (!addForm.moradorId) e.moradorId = 'Selecione o morador';
+      if (!addForm.mesReferencia) e.mesReferencia = 'Mês de referência é obrigatório';
+      if (!addForm.dataVencimento) e.dataVencimento = 'Data de vencimento é obrigatória';
+      if (!addForm.valor || isNaN(Number(addForm.valor))) e.valor = 'Valor inválido';
+      return e;
+    };
 
-  const handleAdd = () => {
+    const handleAdd = async () => {
     const errs = validateAdd();
-    if (Object.keys(errs).length) { setAddErrors(errs); return; }
-    const morador = moradores.find(m => m.id === addForm.moradorId);
-    addMensalidade({
-      moradorId: addForm.moradorId,
-      moradorNome: morador?.nome || addForm.moradorNome,
-      familia: morador?.familia || '',
-      mesReferencia: addForm.mesReferencia,
-      dataVencimento: addForm.dataVencimento,
-      valor: Number(addForm.valor),
-      status: addForm.status,
-      metodoPagamento: addForm.status === 'pago' ? (addForm.metodoPagamento || 'dinheiro') : undefined,
-      dataPagamento: addForm.status === 'pago' ? (addForm.dataPagamento || new Date().toISOString().split('T')[0]) : undefined,
-    });
-    toast.success('Mensalidade registrada!');
-    setAddForm(emptyAdd);
-    setAddErrors({});
-    setAddModal(false);
+
+    if (Object.keys(errs).length) {
+      setAddErrors(errs);
+      return;
+    }
+
+    const morador = moradores.find(
+      m => m.id === addForm.moradorId
+    );
+
+    try {
+      await addMensalidade({
+        moradorId: addForm.moradorId,
+        moradorNome:
+          morador?.nome ||
+          addForm.moradorNome,
+        familia:
+          morador?.familia || '',
+        mesReferencia:
+          addForm.mesReferencia,
+        dataVencimento:
+          addForm.dataVencimento,
+        valor:
+          Number(addForm.valor),
+        status:
+          addForm.status,
+        metodoPagamento:
+          addForm.status === 'pago'
+            ? addForm.metodoPagamento ||
+              'dinheiro'
+            : undefined,
+        dataPagamento:
+          addForm.status === 'pago'
+            ? addForm.dataPagamento ||
+              new Date()
+                .toISOString()
+                .split('T')[0]
+            : undefined,
+      });
+
+      toast.success(
+        'Mensalidade registrada!'
+      );
+
+      setAddForm(emptyAdd);
+      setAddErrors({});
+      setAddModal(false);
+    } catch {
+      toast.error(
+        'Erro ao registrar mensalidade.'
+      );
+    }
   };
 
   return (
@@ -370,9 +443,20 @@ export function Mensalidades() {
                   </div>
                   <div>
                     <label className="block text-sm text-foreground mb-1">Método</label>
-                    <select value={editModal.metodoPagamento || 'dinheiro'}
-                      onChange={e => setEditModal(p => p ? { ...p, metodoPagamento: e.target.value } : p)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <select
+  value={editModal.metodoPagamento || 'dinheiro'}
+  onChange={(e) =>
+    setEditModal((p) =>
+      p
+        ? {
+            ...p,
+            metodoPagamento: e.target.value as Mensalidade['metodoPagamento'],
+          }
+        : p
+    )
+  }
+  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+>
                       <option value="dinheiro">Dinheiro</option>
                       <option value="pix">PIX</option>
                       <option value="transferencia">Transferência</option>
