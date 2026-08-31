@@ -64,12 +64,13 @@ interface DataContextType {
   updateMorador: (m: Morador) => Promise<void>;
   deleteMorador: (id: string) => Promise<void>;
 
-  // Famílias
-  familias: Familia[];
-  addFamilia: (
+// Famílias
+familias: Familia[];
+addFamilia: (
   f: Omit<Familia, 'id'>
 ) => Promise<Familia>;
-  updateFamilia: (f: Familia) => void;
+updateFamilia: (f: Familia) => void;
+deleteFamilia: (id: string) => Promise<void>;
 
   // Atividades
   atividades: Atividade[];
@@ -434,6 +435,22 @@ useEffect(() => {
     },
     []
   );
+
+  const deleteFamilia = useCallback(
+  async (id: string): Promise<void> => {
+    try {
+      await api.delete(`/familias/${id}/`);
+
+      setFamilias((prev) =>
+        prev.filter((f) => String(f.id) !== String(id))
+      );
+    } catch (error) {
+      console.error('Erro ao excluir família:', error);
+      throw error;
+    }
+  },
+  []
+);
 
   /*
    * ============================================================
@@ -810,6 +827,7 @@ useEffect(() => {
         familias,
         addFamilia,
         updateFamilia,
+        deleteFamilia,
 
         atividades,
 

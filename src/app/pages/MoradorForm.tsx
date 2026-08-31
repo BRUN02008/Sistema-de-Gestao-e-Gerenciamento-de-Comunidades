@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router';
 import { Card, CardContent, CardHeader } from '../components/Card';
 import { Button } from '../components/Button';
 import { useData } from '../contexts/DataContext';
-import { ArrowLeft, Save, Plus, X, User, Home, HeartPulse, Car, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Trash2 , Save, Plus, X, User, Home, HeartPulse, Car, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { type Familia } from '../data/mockData';
 
 const emptyVeiculo = { tipo: '', modelo: '', cor: '', placa: '' };
 
@@ -81,7 +82,8 @@ export function MoradorForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
-  const { moradores, familias, addMorador, updateMorador, addFamilia } = useData();
+  const { moradores, familias, addMorador, updateMorador, addFamilia, deleteFamilia } = useData();
+  const [gerenciarFamilias, setGerenciarFamilias] = useState(false);
 
   const moradorExistente = isEditing ? moradores.find((m) => m.id === id) : null;
 
@@ -201,6 +203,43 @@ navigate('/moradores');
   const hasComunitarioError = !!errors.familia;
   const hasVeiculoError = !!errors.veiculoTipo;
 
+  const handleExcluirFamilia = async (familia: Familia) => {
+  const moradoresDaFamilia = moradores.filter(
+    (m) => String(m.familia) === String(familia.id)
+  );
+
+  if (moradoresDaFamilia.length > 0) {
+    toast.error(
+      `Não é possível excluir "${familia.nome}". Existem ${moradoresDaFamilia.length} morador(es) vinculados.`
+    );
+
+    return;
+  }
+
+  const confirmar = window.confirm(
+    `Deseja realmente excluir a família "${familia.nome}"?`
+  );
+
+  if (!confirmar) return;
+
+  try {
+    await deleteFamilia(String(familia.id));
+
+    // Se ela estava selecionada no formulário,
+    // limpa a seleção.
+    if (String(formData.familia) === String(familia.id)) {
+      handleChange('familia', '');
+    }
+
+    toast.success(
+      `Família "${familia.nome}" excluída com sucesso!`
+    );
+  } catch (error) {
+  console.error('Erro ao excluir família:', error);
+  toast.error('Erro ao excluir família');
+}
+};
+
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* Back + title */}
@@ -293,15 +332,37 @@ navigate('/moradores');
                     <>
                       <label className={labelClass}>Família *</label>
                       <div className="flex gap-2">
-                        <select value={formData.familia} onChange={e => handleChange('familia', e.target.value)} className={`${fieldClass} flex-1`}>
-                          <option value="">Selecione uma família</option>
-                          {familias.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                        </select>
-                        <button type="button" onClick={() => setNovaFamiliaMode(true)}
-                          className="px-3 py-2.5 text-xs border border-dashed border-primary text-primary rounded-lg hover:bg-primary/5 whitespace-nowrap flex items-center gap-1 shrink-0">
-                          <Plus size={13} /> Nova
-                        </button>
-                      </div>
+  <select
+    value={formData.familia}
+    onChange={e => handleChange('familia', e.target.value)}
+    className={`${fieldClass} flex-1`}
+  >
+    <option value="">Selecione uma família</option>
+
+    {familias.map(f => (
+      <option key={f.id} value={f.id}>
+        {f.nome}
+      </option>
+    ))}
+  </select>
+
+  <button
+    type="button"
+    onClick={() => setNovaFamiliaMode(true)}
+    className="px-3 py-2.5 text-xs border border-dashed border-primary text-primary rounded-lg hover:bg-primary/5 whitespace-nowrap flex items-center gap-1 shrink-0"
+  >
+    <Plus size={13} />
+    Nova
+  </button>
+</div>
+
+<button
+  type="button"
+  onClick={() => setGerenciarFamilias(true)}
+  className="mt-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+>
+  Gerenciar famílias
+</button>
                       {errors.familia && <p className="text-xs text-destructive mt-1">{errors.familia}</p>}
                     </>
                   ) : (
@@ -476,6 +537,99 @@ navigate('/moradores');
                   Ative para registrar o veículo do morador e liberar acesso ao balneário comunitário.
                 </p>
               )}
+
+              {gerenciarFamilias && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="w-full max-w-lg bg-background rounded-xl shadow-xl border border-border">
+
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Gerenciar Famílias
+          </h2>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Famílias cadastradas no sistema
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setGerenciarFamilias(false)}
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Lista */}
+      <div className="p-4 max-h-[60vh] overflow-y-auto">
+        {familias.length === 0 ? (
+          <div className="text-center py-8">
+            <Home
+              size={32}
+              className="mx-auto mb-2 text-muted-foreground"
+            />
+
+            <p className="text-sm text-muted-foreground">
+              Nenhuma família cadastrada.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {familias.map((familia) => {
+              const quantidadeMoradores = moradores.filter(
+                (m) =>
+                  String(m.familia) === String(familia.id)
+              ).length;
+
+              return (
+                <div
+                  key={familia.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-muted/20"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {familia.nome}
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      {quantidadeMoradores === 0
+                        ? 'Nenhum morador vinculado'
+                        : `${quantidadeMoradores} morador${quantidadeMoradores > 1 ? 'es' : ''} vinculado${quantidadeMoradores > 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleExcluirFamilia(familia)}
+                    className="shrink-0 px-3 py-2 text-xs text-destructive border border-destructive/30 rounded-lg hover:bg-destructive/10 transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 size={14} />
+                    Excluir
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Rodapé */}
+      <div className="flex justify-end p-4 border-t border-border">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setGerenciarFamilias(false)}
+        >
+          Fechar
+        </Button>
+      </div>
+
+    </div>
+  </div>
+)}
             </CardContent>
           )}
         </Card>
