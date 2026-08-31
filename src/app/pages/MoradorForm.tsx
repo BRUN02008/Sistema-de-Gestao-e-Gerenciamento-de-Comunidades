@@ -327,69 +327,144 @@ navigate('/moradores');
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                 {/* Família */}
-                <div className="sm:col-span-2">
-                  {!novaFamiliaMode ? (
-                    <>
-                      <label className={labelClass}>Família *</label>
-                      <div className="flex gap-2">
-  <select
-    value={formData.familia}
-    onChange={e => handleChange('familia', e.target.value)}
-    className={`${fieldClass} flex-1`}
-  >
-    <option value="">Selecione uma família</option>
+                {/* Família */}
+<div className="sm:col-span-2">
+  {!novaFamiliaMode ? (
+    <>
+      <label className={labelClass}>Família *</label>
 
-    {familias.map(f => (
-      <option key={f.id} value={f.id}>
-        {f.nome}
-      </option>
-    ))}
-  </select>
+      {/* Select + Nova */}
+      <div className="flex gap-2">
+        <select
+          value={formData.familia}
+          onChange={(e) =>
+            handleChange('familia', e.target.value)
+          }
+          className={`${fieldClass} flex-1`}
+        >
+          <option value="">
+            Selecione uma família
+          </option>
 
-  <button
-    type="button"
-    onClick={() => setNovaFamiliaMode(true)}
-    className="px-3 py-2.5 text-xs border border-dashed border-primary text-primary rounded-lg hover:bg-primary/5 whitespace-nowrap flex items-center gap-1 shrink-0"
-  >
-    <Plus size={13} />
-    Nova
-  </button>
+          {familias.map((familia) => (
+            <option
+              key={familia.id}
+              value={familia.id}
+            >
+              {familia.nome}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={() => setNovaFamiliaMode(true)}
+          className="px-3 py-2.5 text-xs border border-dashed border-primary text-primary rounded-lg hover:bg-primary/5 whitespace-nowrap flex items-center gap-1 shrink-0"
+        >
+          <Plus size={13} />
+          Nova
+        </button>
+      </div>
+
+      {/* Gerenciar famílias */}
+      <button
+        type="button"
+        onClick={() => setGerenciarFamilias(true)}
+        className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+      >
+        <Home size={13} />
+        Gerenciar famílias
+      </button>
+
+      {/* Erro da família */}
+      {errors.familia && (
+        <p className="text-xs text-destructive mt-1">
+          {errors.familia}
+        </p>
+      )}
+    </>
+  ) : (
+    /* Criar nova família */
+    <div className="border border-primary/30 bg-primary/5 rounded-lg p-3 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-foreground">
+          Criar nova família
+        </p>
+
+        <button
+          type="button"
+          onClick={() => setNovaFamiliaMode(false)}
+          className="p-1 hover:bg-muted rounded"
+        >
+          <X
+            size={14}
+            className="text-muted-foreground"
+          />
+        </button>
+      </div>
+
+      {/* Nome */}
+      <input
+        type="text"
+        placeholder="Nome da família *"
+        value={novaFamiliaForm.nome}
+        onChange={(e) => {
+          setNovaFamiliaForm((prev) => ({
+            ...prev,
+            nome: e.target.value,
+          }));
+
+          setNovaFamiliaErr('');
+        }}
+        className={fieldClass}
+      />
+
+      {novaFamiliaErr && (
+        <p className="text-xs text-destructive">
+          {novaFamiliaErr}
+        </p>
+      )}
+
+      {/* Responsável */}
+      <input
+        type="text"
+        placeholder="Responsável (opcional)"
+        value={novaFamiliaForm.responsavel}
+        onChange={(e) =>
+          setNovaFamiliaForm((prev) => ({
+            ...prev,
+            responsavel: e.target.value,
+          }))
+        }
+        className={fieldClass}
+      />
+
+      {/* Endereço */}
+      <input
+        type="text"
+        placeholder="Endereço (opcional)"
+        value={novaFamiliaForm.endereco}
+        onChange={(e) =>
+          setNovaFamiliaForm((prev) => ({
+            ...prev,
+            endereco: e.target.value,
+          }))
+        }
+        className={fieldClass}
+      />
+
+      {/* Criar */}
+      <button
+        type="button"
+        onClick={handleCriarFamilia}
+        className="w-full py-2.5 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 flex items-center justify-center gap-1"
+      >
+        <Plus size={14} />
+        Criar e selecionar
+      </button>
+    </div>
+  )}
 </div>
-
-<button
-  type="button"
-  onClick={() => setGerenciarFamilias(true)}
-  className="mt-2 text-xs text-muted-foreground hover:text-primary transition-colors"
->
-  Gerenciar famílias
-</button>
-                      {errors.familia && <p className="text-xs text-destructive mt-1">{errors.familia}</p>}
-                    </>
-                  ) : (
-                    <div className="border border-primary/30 bg-primary/5 rounded-lg p-3 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-foreground">Criar nova família</p>
-                        <button type="button" onClick={() => setNovaFamiliaMode(false)} className="p-1 hover:bg-muted rounded">
-                          <X size={14} className="text-muted-foreground" />
-                        </button>
-                      </div>
-                      <input type="text" placeholder="Nome da família *" value={novaFamiliaForm.nome}
-                        onChange={e => { setNovaFamiliaForm(p => ({ ...p, nome: e.target.value })); setNovaFamiliaErr(''); }}
-                        className={fieldClass} />
-                      {novaFamiliaErr && <p className="text-xs text-destructive">{novaFamiliaErr}</p>}
-                      <input type="text" placeholder="Responsável (opcional)" value={novaFamiliaForm.responsavel}
-                        onChange={e => setNovaFamiliaForm(p => ({ ...p, responsavel: e.target.value }))}
-                        className={fieldClass} />
-                      <input type="text" placeholder="Endereço (opcional)" value={novaFamiliaForm.endereco}
-                        onChange={e => setNovaFamiliaForm(p => ({ ...p, endereco: e.target.value }))}
-                        className={fieldClass} />
-                      <button type="button" onClick={handleCriarFamilia}
-                        className="w-full py-2.5 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 flex items-center justify-center gap-1">
-                        <Plus size={14} /> Criar e selecionar
-                      </button>
-                    </div>
-                  )}
-                </div>
 
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Endereço</label>
