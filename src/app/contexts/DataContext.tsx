@@ -24,7 +24,6 @@ import {
   mockDocumentos,
   mockDependentes,
   mockEventos,
-  mockDespesas,
   mockRelatorios,
   mockOficios,
 } from '../data/mockData';
@@ -111,9 +110,9 @@ deleteInvestimento: (
 
   // Despesas
   despesas: Despesa[];
-  addDespesa: (
+addDespesa: (
   d: Omit<Despesa, 'id'>
-) => Despesa;
+) => Promise<Despesa>;
   updateDespesa: (d: Despesa) => void;
   deleteDespesa: (id: string) => void;
 
@@ -158,6 +157,18 @@ type InvestimentoAPI = {
   responsavel: string;
   observacoes?: string | null;
 };
+
+
+interface DespesaAPI {
+  id: number | string;
+  titulo: string;
+  categoria: Despesa['categoria'];
+  valor: number | string;
+  data: string;
+  responsavel: string;
+  descricao: string;
+  criado_em?: string;
+}
 
 export function DataProvider({
   children,
@@ -365,10 +376,48 @@ useEffect(() => {
   carregarInvestimentos();
 }, []);
 
-const [despesas, setDespesas] =
-  useState<Despesa[]>(() =>
-    load('despesas', mockDespesas)
-  );
+const [despesas, setDespesas] = useState<Despesa[]>([]);
+
+useEffect(() => {
+  async function carregarDespesas() {
+    try {
+      const data = await api.get('/despesas/');
+
+      if (!Array.isArray(data)) {
+        setDespesas([]);
+        return;
+      }
+
+      const despesasApi: Despesa[] =
+        (data as DespesaAPI[]).map((d) => ({
+          id: String(d.id),
+          titulo: d.titulo,
+          categoria: d.categoria,
+          valor: Number(d.valor),
+          data: d.data,
+          responsavel: d.responsavel,
+          descricao: d.descricao,
+        }));
+
+      setDespesas(despesasApi);
+
+      // Mantém cópia local apenas como fallback
+      save('despesas', despesasApi);
+
+    } catch (error) {
+      console.error(
+        'Erro ao carregar despesas do Django:',
+        error
+      );
+
+      setDespesas(
+        load('despesas', [])
+      );
+    }
+  }
+
+  carregarDespesas();
+}, []);
 
   const [relatorios, setRelatorios] =
     useState<RelatorioAtividade[]>(() =>
@@ -1076,54 +1125,127 @@ const deleteInvestimento = useCallback(
    */
 
  const addDespesa = useCallback(
-  (d: Omit<Despesa, 'id'>): Despesa => {
-      const nova = {
-        ...d,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+  async (
+    d: Omit<Despesa, 'id'>
+  ): Promise<Despesa> => {
+    try {
+      const data = (await api.post(
+        '/despesas/',
+        {
+          categoria: d.categoria,
+          valor: d.valor,
+          data: d.data,
+          responsavel: d.responsavel,
+          descricao: d.descricao,
+        }
+      )) as DespesaAPI;
+
+      const nova: Despesa = {
+        id: String(data.id),
+        categoria: data.categoria,
+        valor: Number(data.valor),
+        data: data.data,
+        responsavel: data.responsavel,
+        descricao: data.descricao,
       };
 
       setDespesas((prev) => {
         const next = [...prev, nova];
+
         save('despesas', next);
+
         return next;
       });
 
       return nova;
-    },
-    []
-  );
+
+    } catch (error) {
+      console.error(
+        'Erro ao cadastrar despesa:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
 
   const updateDespesa = useCallback(
-    (d: Despesa) => {
+  async (d: Despesa): Promise<void> => {
+    try {
+      const data = (await api.put(
+        `/despesas/${d.id}/`,
+        {
+          categoria: d.categoria,
+          valor: d.valor,
+          data: d.data,
+          responsavel: d.responsavel,
+          descricao: d.descricao,
+        }
+      )) as DespesaAPI;
+
+      const atualizada: Despesa = {
+        id: String(data.id),
+        categoria: data.categoria,
+        valor: Number(data.valor),
+        data: data.data,
+        responsavel: data.responsavel,
+        descricao: data.descricao,
+      };
+
       setDespesas((prev) => {
         const next = prev.map((x) =>
-          x.id === d.id ? d : x
+          x.id === atualizada.id
+            ? atualizada
+            : x
         );
 
         save('despesas', next);
 
         return next;
       });
-    },
-    []
-  );
 
-  const deleteDespesa = useCallback(
-    (id: string) => {
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar despesa:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
+
+ const deleteDespesa = useCallback(
+  async (id: string): Promise<void> => {
+    try {
+      await api.delete(
+        `/despesas/${id}/`
+      );
+
       setDespesas((prev) => {
         const next = prev.filter(
-          (x) => x.id !== id
+          (d) => d.id !== id
         );
 
         save('despesas', next);
 
         return next;
       });
-    },
-    []
-  );
+
+    } catch (error) {
+      console.error(
+        'Erro ao excluir despesa:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
 
   /*
    * ============================================================

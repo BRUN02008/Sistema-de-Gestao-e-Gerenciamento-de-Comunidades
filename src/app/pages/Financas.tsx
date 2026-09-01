@@ -15,38 +15,42 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 import { useData } from '../contexts/DataContext';
 
 export function Financas() {
-  const { mensalidades: mockMensalidades, investimentos: mockInvestimentos, despesas: mockDespesas } = useData();
+  const {
+  mensalidades,
+  investimentos,
+  despesas
+} = useData();
 
-  const totalMensalidadesRecebidas = mockMensalidades
+  const totalMensalidadesRecebidas = mensalidades
     .filter(m => m.status === 'pago')
     .reduce((acc, m) => acc + m.valor, 0);
 
-  const totalMensalidadesPendentes = mockMensalidades
+  const totalMensalidadesPendentes = mensalidades
     .filter(m => m.status === 'pendente' || m.status === 'atrasado')
     .reduce((acc, m) => acc + m.valor, 0);
 
-  const totalInvestimentos = mockInvestimentos
+  const totalInvestimentos = investimentos
     .filter(i => i.status === 'concluido' || i.status === 'em_andamento')
     .reduce((acc, i) => acc + i.valor, 0);
 
-  const totalDespesas = mockDespesas.reduce((acc, d) => acc + d.valor, 0);
+  const totalDespesas = despesas.reduce((acc, d) => acc + d.valor, 0);
 
   const saldoAtual = totalMensalidadesRecebidas - totalInvestimentos - totalDespesas;
 
   const mensalidadesPorStatus = [
     {
       name: 'Pagas',
-      value: mockMensalidades.filter(m => m.status === 'pago').length,
+      value: mensalidades.filter(m => m.status === 'pago').length,
       color: '#5c8a3e'
     },
     {
       name: 'Pendentes',
-      value: mockMensalidades.filter(m => m.status === 'pendente').length,
+      value: mensalidades.filter(m => m.status === 'pendente').length,
       color: '#3b7fa4'
     },
     {
       name: 'Atrasadas',
-      value: mockMensalidades.filter(m => m.status === 'atrasado').length,
+      value: mensalidades.filter(m => m.status === 'atrasado').length,
       color: '#c73e1d'
     }
   ];
@@ -54,27 +58,27 @@ export function Financas() {
   const investimentosPorCategoria = [
     {
       categoria: 'Infraestrutura',
-      valor: mockInvestimentos.filter(i => i.categoria === 'infraestrutura').reduce((acc, i) => acc + i.valor, 0)
+      valor: investimentos.filter(i => i.categoria === 'infraestrutura').reduce((acc, i) => acc + i.valor, 0)
     },
     {
       categoria: 'Educação',
-      valor: mockInvestimentos.filter(i => i.categoria === 'educacao').reduce((acc, i) => acc + i.valor, 0)
+      valor: investimentos.filter(i => i.categoria === 'educacao').reduce((acc, i) => acc + i.valor, 0)
     },
     {
       categoria: 'Saúde',
-      valor: mockInvestimentos.filter(i => i.categoria === 'saude').reduce((acc, i) => acc + i.valor, 0)
+      valor: investimentos.filter(i => i.categoria === 'saude').reduce((acc, i) => acc + i.valor, 0)
     },
     {
       categoria: 'Meio Ambiente',
-      valor: mockInvestimentos.filter(i => i.categoria === 'meio_ambiente').reduce((acc, i) => acc + i.valor, 0)
+      valor: investimentos.filter(i => i.categoria === 'meio_ambiente').reduce((acc, i) => acc + i.valor, 0)
     },
     {
       categoria: 'Outros',
-      valor: mockInvestimentos.filter(i => i.categoria === 'outros').reduce((acc, i) => acc + i.valor, 0)
+      valor: investimentos.filter(i => i.categoria === 'outros').reduce((acc, i) => acc + i.valor, 0)
     }
   ].filter(item => item.valor > 0);
 
-  const ultimosInvestimentos = mockInvestimentos
+  const ultimosInvestimentos = investimentos
     .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
     .slice(0, 5);
 
@@ -140,7 +144,7 @@ export function Financas() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {mockMensalidades.filter(m => m.status === 'pago').length} mensalidades pagas
+              {mensalidades.filter(m => m.status === 'pago').length} mensalidades pagas
             </p>
           </CardContent>
         </Card>
@@ -157,7 +161,7 @@ export function Financas() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {mockMensalidades.filter(m => m.status !== 'pago').length} mensalidades pendentes
+              {mensalidades.filter(m => m.status !== 'pago').length} mensalidades pendentes
             </p>
           </CardContent>
         </Card>
@@ -174,7 +178,7 @@ export function Financas() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {mockInvestimentos.filter(i => i.status !== 'cancelado').length} projetos ativos
+              {investimentos.filter(i => i.status !== 'cancelado').length} projetos ativos
             </p>
           </CardContent>
         </Card>
