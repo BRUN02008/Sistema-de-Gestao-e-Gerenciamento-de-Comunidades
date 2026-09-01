@@ -64,20 +64,49 @@ export function MinhaContaFinanceira() {
   const { mensalidades, investimentos, familias, dependentes: allDependentes, moradores } = useData();
   const [mostrarTodasMensalidades, setMostrarTodasMensalidades] = useState(false);
 
-  const minhasMensalidades = mensalidades
-    .filter(m => m.moradorId === user?.moradorId)
-    .sort((a, b) => b.mesReferencia.localeCompare(a.mesReferencia));
+ const minhasMensalidades = mensalidades
+  .filter(
+    m => String(m.moradorId) === String(user?.moradorId)
+  )
+  .sort((a, b) =>
+    b.mesReferencia.localeCompare(a.mesReferencia)
+  );
 
-  const pagas = minhasMensalidades.filter(m => m.status === 'pago');
-  const pendentes = minhasMensalidades.filter(m => m.status === 'pendente');
-  const atrasadas = minhasMensalidades.filter(m => m.status === 'atrasado');
+const pagas = minhasMensalidades.filter(
+  m => m.status === 'pago'
+);
 
-  const totalPago = pagas.reduce((a, m) => a + m.valor, 0);
-  const totalDevido = [...pendentes, ...atrasadas].reduce((a, m) => a + m.valor, 0);
+const pendentes = minhasMensalidades.filter(
+  m => m.status === 'pendente'
+);
 
-  const familia = familias.find(f => f.nome === user?.familia);
-  const morador = moradores.find(m => m.id === user?.moradorId);
-  const dependentes = allDependentes.filter(d => d.moradorResponsavelId === user?.moradorId);
+const atrasadas = minhasMensalidades.filter(
+  m => m.status === 'atrasado'
+);
+
+const totalPago = pagas.reduce(
+  (a, m) => a + m.valor,
+  0
+);
+
+const totalDevido = [...pendentes, ...atrasadas].reduce(
+  (a, m) => a + m.valor,
+  0
+);
+
+const familia = familias.find(
+  f => f.nome === user?.familia
+);
+
+const morador = moradores.find(
+  m => String(m.id) === String(user?.moradorId)
+);
+
+const dependentes = allDependentes.filter(
+  d =>
+    String(d.moradorResponsavelId) ===
+    String(user?.moradorId)
+);
 
   const mensalidadesExibidas = mostrarTodasMensalidades
     ? minhasMensalidades
@@ -92,14 +121,24 @@ export function MinhaContaFinanceira() {
       .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   };
 
-  const investimentosPorCategoria = investimentos.reduce((acc, inv) => {
-    acc[inv.categoria] = (acc[inv.categoria] || 0) + inv.valor;
-    return acc;
-  }, {} as Record<string, number>);
+  const investimentosAtivos = investimentos.filter(
+  inv => inv.status !== 'cancelado'
+);
 
-  const totalInvestido = investimentos
-    .filter(i => i.status !== 'cancelado')
-    .reduce((a, i) => a + i.valor, 0);
+const investimentosPorCategoria = investimentosAtivos.reduce(
+  (acc, inv) => {
+    acc[inv.categoria] =
+      (acc[inv.categoria] || 0) + inv.valor;
+
+    return acc;
+  },
+  {} as Record<string, number>
+);
+
+const totalInvestido = investimentosAtivos.reduce(
+  (a, i) => a + i.valor,
+  0
+);
 
   return (
     <div className="space-y-6">
@@ -192,7 +231,9 @@ export function MinhaContaFinanceira() {
                   <Users size={16} className="text-secondary" />
                   <span className="text-sm text-foreground">{familia.nome}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">{familia.totalMembros} membros</span>
+                <span className="text-xs text-muted-foreground">
+  {familia.total_membros} membros
+</span>
               </div>
             )}
 
@@ -314,7 +355,7 @@ export function MinhaContaFinanceira() {
 
           <div className="space-y-4">
             <h4 className="text-sm text-foreground">Projetos da Comunidade</h4>
-            {investimentos.map((inv) => (
+            {investimentosAtivos.map((inv) => (
               <div key={inv.id} className="p-4 border border-border rounded-lg hover:bg-muted/20 transition-colors">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
