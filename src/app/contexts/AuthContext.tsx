@@ -17,6 +17,11 @@ export interface User {
   familia?: string;
 }
 
+export interface UserAccount {
+  email: string;
+  user: User;
+}
+
 interface LoginResponse {
   access: string;
   refresh: string;
@@ -25,11 +30,33 @@ interface LoginResponse {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, senha: string) => Promise<{
+
+  users: UserAccount[];
+
+  login: (
+    email: string,
+    senha: string
+  ) => Promise<{
     success: boolean;
     error?: string;
   }>;
+
   logout: () => void;
+
+  addUser: (data: {
+    email: string;
+    senha: string;
+    user: Omit<User, 'id'>;
+  }) => {
+    success: boolean;
+    error?: string;
+  };
+
+  removeUser: (id: string) => {
+    success: boolean;
+    error?: string;
+  };
+
   isAuthenticated: boolean;
 }
 
@@ -40,18 +67,102 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [user, setUser] = useState<User | null>(() => {
-    try {
-      const savedUser = localStorage.getItem('sisgest_user');
+  try {
+    const savedUser = localStorage.getItem('sisgest_user');
 
-      if (savedUser) {
-        return JSON.parse(savedUser);
-      }
-
-      return null;
-    } catch {
-      return null;
+    if (savedUser) {
+      return JSON.parse(savedUser);
     }
+
+    return null;
+  } catch {
+    return null;
+  }
+});
+
+  const [users, setUsers] = useState<UserAccount[]>(() => {
+  try {
+    const savedUsers = localStorage.getItem('sisgest_users');
+
+    if (savedUsers) {
+      return JSON.parse(savedUsers);
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
+});
+
+const addUser = (data: {
+  email: string;
+  senha: string;
+  user: Omit<User, 'id'>;
+}) => {
+  const emailExiste = users.some(
+    (u) => u.email.toLowerCase() === data.email.toLowerCase()
+  );
+
+  if (emailExiste) {
+    return {
+      success: false,
+      error: 'Este e-mail já está cadastrado.'
+    };
+  }
+
+  const novoUsuario: User = {
+    ...data.user,
+    id: crypto.randomUUID(),
+    email: data.email,
+  };
+
+  const novoAccount: UserAccount = {
+    email: data.email,
+    user: novoUsuario,
+  };
+
+  setUsers((prev) => {
+    const next = [...prev, novoAccount];
+
+    localStorage.setItem(
+      'sisgest_users',
+      JSON.stringify(next)
+    );
+
+    return next;
   });
+
+  return {
+    success: true
+  };
+};
+
+
+const removeUser = (id: string) => {
+  if (id === user?.id) {
+    return {
+      success: false,
+      error: 'Você não pode remover o próprio usuário.'
+    };
+  }
+
+  setUsers((prev) => {
+    const next = prev.filter(
+      (account) => account.user.id !== id
+    );
+
+    localStorage.setItem(
+      'sisgest_users',
+      JSON.stringify(next)
+    );
+
+    return next;
+  });
+
+  return {
+    success: true
+  };
+};
 
   const login = async (
     email: string,
@@ -135,11 +246,14 @@ console.log(
   return (
     <AuthContext.Provider
       value={{
-        user,
-        login,
-        logout,
-        isAuthenticated: !!user
-      }}
+  user,
+  users,
+  login,
+  logout,
+  addUser,
+  removeUser,
+  isAuthenticated: !!user
+}}
     >
       {children}
     </AuthContext.Provider>
