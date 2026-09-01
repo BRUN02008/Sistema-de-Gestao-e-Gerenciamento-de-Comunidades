@@ -842,28 +842,33 @@ useEffect(() => {
     m: Omit<Mensalidade, 'id'>
   ): Promise<Mensalidade> => {
     try {
-      const data = (await api.post(
-        '/mensalidades/',
-        {
-          morador: Number(m.moradorId),
-          mes_referencia: m.mesReferencia,
-          data_vencimento: m.dataVencimento,
-          valor: m.valor,
-          status: m.status,
-          data_pagamento: m.dataPagamento,
-          metodo_pagamento: m.metodoPagamento,
-        }
-      )) as {
-        id: number | string;
-        morador?: number | string;
-        familia?: number | string;
-        mes_referencia?: string;
-        data_vencimento?: string;
-        valor?: number;
-        status?: Mensalidade['status'];
-        data_pagamento?: string;
-        metodo_pagamento?: string;
-      };
+      const payload: Record<string, unknown> = {
+  familia: Number(m.familia),
+  mes_referencia: m.mesReferencia,
+  data_vencimento: m.dataVencimento,
+  valor: m.valor,
+  status: m.status,
+};
+
+if (m.status === 'pago') {
+  payload.data_pagamento = m.dataPagamento ?? null;
+  payload.metodo_pagamento = m.metodoPagamento ?? 'dinheiro';
+}
+
+const data = (await api.post(
+  '/mensalidades/',
+  payload
+)) as {
+  id: number | string;
+  familia?: number | string;
+  morador?: string | number;
+  mes_referencia?: string;
+  data_vencimento?: string;
+  valor?: number | string;
+  status?: Mensalidade['status'];
+  data_pagamento?: string | null;
+  metodo_pagamento?: 'dinheiro' | 'pix' | 'transferencia' | null;
+};
 
       const nova: Mensalidade = {
         ...m,
@@ -886,8 +891,7 @@ useEffect(() => {
         dataVencimento:
           data.data_vencimento ?? m.dataVencimento,
 
-        valor:
-          data.valor ?? m.valor,
+       valor: Number(data.valor ?? m.valor),
 
         status:
           data.status ?? m.status,
