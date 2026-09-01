@@ -129,8 +129,8 @@ export function Mensalidades() {
     }
 
     const morador = moradores.find(
-      m => m.id === addForm.moradorId
-    );
+  m => String(m.id) === String(addForm.moradorId)
+);
 
     try {
       await addMensalidade({
