@@ -71,8 +71,22 @@ deleteFamilia: (id: string) => Promise<void>;
 
   // Documentos
   documentos: Documento[];
-  addDocumento: (d: Omit<Documento, 'id'>) => Documento;
-  deleteDocumento: (id: string) => void;
+
+addDocumento: (
+  d: Omit<Documento, 'id' | 'arquivo'> & {
+    arquivo: File;
+  }
+) => Promise<Documento>;
+
+updateDocumento: (
+  d: Omit<Documento, 'arquivo'> & {
+    arquivo?: File;
+  }
+) => Promise<Documento>;
+
+deleteDocumento: (
+  id: string
+) => Promise<void>;
 
   // Dependentes
   dependentes: Dependente[];
@@ -203,6 +217,17 @@ interface OficioAPI {
   observacoes: string;
   criado_em?: string;
   atualizado_em?: string;
+}
+
+interface DocumentoAPI {
+  id: number | string;
+  morador: number | string;
+  morador_detalhes?: Morador;
+  titulo: string;
+  tipo: Documento['tipo'];
+  data_emissao: string;
+  arquivo: string;
+  criado_em?: string;
 }
 
 interface RelatorioAPI {
@@ -817,12 +842,33 @@ useEffect(() => {
    */
 
   const addDocumento = useCallback(
-    (d: Omit<Documento, 'id'>): Documento => {
+  async (
+    d: Omit<Documento, 'id' | 'arquivo'> & {
+      arquivo: File;
+    }
+  ): Promise<Documento> => {
+    try {
+      const formData = new FormData();
+
+      formData.append('morador', String(d.moradorId));
+      formData.append('titulo', d.titulo);
+      formData.append('tipo', d.tipo);
+      formData.append('data_emissao', d.dataEmissao);
+      formData.append('arquivo', d.arquivo);
+
+      const data = (await api.post(
+        '/documentos/',
+        formData
+      )) as DocumentoAPI;
+
       const novo: Documento = {
-        ...d,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+        id: String(data.id),
+        titulo: data.titulo,
+        tipo: data.tipo,
+        morador: data.morador_detalhes?.nome ?? d.morador,
+        moradorId: String(data.morador),
+        dataEmissao: data.data_emissao,
+        arquivo: data.arquivo,
       };
 
       setDocumentos((prev) => {
@@ -832,24 +878,90 @@ useEffect(() => {
       });
 
       return novo;
-    },
-    []
-  );
+    } catch (error) {
+      console.error('Erro ao cadastrar documento:', error);
+      throw error;
+    }
+  },
+  []
+);
 
-  const deleteDocumento = useCallback(
-    (id: string) => {
+  const updateDocumento = useCallback(
+  async (
+    d: Omit<Documento, 'arquivo'> & {
+      arquivo?: File;
+    }
+  ): Promise<Documento> => {
+    try {
+      const formData = new FormData();
+
+      formData.append('morador', String(d.moradorId));
+      formData.append('titulo', d.titulo);
+      formData.append('tipo', d.tipo);
+      formData.append('data_emissao', d.dataEmissao);
+
+      if (d.arquivo) {
+        formData.append('arquivo', d.arquivo);
+      }
+
+      const data = (await api.patch(
+        `/documentos/${d.id}/`,
+        formData
+      )) as DocumentoAPI;
+
+      const atualizado: Documento = {
+        id: String(data.id),
+        titulo: data.titulo,
+        tipo: data.tipo,
+        morador: data.morador_detalhes?.nome ?? d.morador,
+        moradorId: String(data.morador),
+        dataEmissao: data.data_emissao,
+        arquivo: data.arquivo,
+      };
+
       setDocumentos((prev) => {
-        const next = prev.filter(
-          (x) => x.id !== id
+        const next = prev.map((doc) =>
+          String(doc.id) === String(d.id)
+            ? atualizado
+            : doc
         );
 
         save('documentos', next);
 
         return next;
       });
-    },
-    []
-  );
+
+      return atualizado;
+    } catch (error) {
+      console.error('Erro ao atualizar documento:', error);
+      throw error;
+    }
+  },
+  []
+);
+
+
+const deleteDocumento = useCallback(
+  async (id: string): Promise<void> => {
+    try {
+      await api.delete(`/documentos/${id}/`);
+
+      setDocumentos((prev) => {
+        const next = prev.filter(
+          (documento) => String(documento.id) !== String(id)
+        );
+
+        save('documentos', next);
+
+        return next;
+      });
+    } catch (error) {
+      console.error('Erro ao excluir documento:', error);
+      throw error;
+    }
+  },
+  []
+);
 
   /*
    * ============================================================
@@ -1671,6 +1783,7 @@ const deleteOficio = useCallback(
 
         documentos,
         addDocumento,
+        updateDocumento,
         deleteDocumento,
 
         dependentes,

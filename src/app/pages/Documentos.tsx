@@ -12,16 +12,26 @@ const TIPO_LABELS: Record<string, string> = {
 };
 
 const emptyForm = {
-  titulo: '', tipo: 'declaracao' as Documento['tipo'],
-  morador: '', moradorId: '', dataEmissao: '', arquivo: ''
+  titulo: '',
+  tipo: 'declaracao' as Documento['tipo'],
+  morador: '',
+  moradorId: '',
+  dataEmissao: '',
+  arquivo: null as File | null
 };
 
 
 export function Documentos() {
   const { user } = useAuth();
-  const { documentos, addDocumento, deleteDocumento, moradores } = useData();
+  const {
+  documentos,
+  addDocumento,
+  updateDocumento,
+  deleteDocumento,
+  moradores
+} = useData();
   const isMorador = user?.role === 'visualizador';
-
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -40,9 +50,17 @@ export function Documentos() {
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
   const saveAssinaturas = (updated: typeof signedDocs) => {
-    setSignedDocs(updated);
-    try { localStorage.setItem('sisgest_assinaturas', JSON.stringify(updated)); } catch {}
-  };
+  setSignedDocs(updated);
+
+  try {
+    localStorage.setItem(
+      'sisgest_assinaturas',
+      JSON.stringify(updated)
+    );
+  } catch (error) {
+    console.warn('Não foi possível salvar as assinaturas:', error);
+  }
+};
 
   const getCanvasPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
@@ -129,24 +147,78 @@ export function Documentos() {
   };
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.titulo.trim()) e.titulo = 'Título é obrigatório';
-    if (!form.morador.trim()) e.morador = 'Morador é obrigatório';
-    if (!form.dataEmissao) e.dataEmissao = 'Data de emissão é obrigatória';
-    if (!form.arquivo.trim()) e.arquivo = 'Nome do arquivo é obrigatório';
-    return e;
-  };
+  const e: Record<string, string> = {};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    addDocumento({ ...form });
-    toast.success(`Documento "${form.titulo}" cadastrado!`);
+  if (!form.titulo.trim()) {
+    e.titulo = 'Título é obrigatório';
+  }
+
+  if (!form.moradorId && !form.morador.trim()) {
+    e.morador = 'Morador é obrigatório';
+  }
+
+  if (!form.dataEmissao) {
+    e.dataEmissao = 'Data de emissão é obrigatória';
+  }
+
+  if (!editingId && !form.arquivo) {
+    e.arquivo = 'Arquivo é obrigatório';
+  }
+
+  return e;
+};
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const errs = validate();
+
+  if (Object.keys(errs).length > 0) {
+    setErrors(errs);
+    return;
+  }
+
+  try {
+    if (editingId) {
+      await updateDocumento({
+        id: editingId,
+        titulo: form.titulo,
+        tipo: form.tipo,
+        morador: form.morador,
+        moradorId: form.moradorId,
+        dataEmissao: form.dataEmissao,
+        arquivo: form.arquivo || undefined,
+      });
+
+      toast.success(`Documento "${form.titulo}" atualizado!`);
+    } else {
+      if (!form.arquivo) return;
+
+      await addDocumento({
+        titulo: form.titulo,
+        tipo: form.tipo,
+        morador: form.morador,
+        moradorId: form.moradorId,
+        dataEmissao: form.dataEmissao,
+        arquivo: form.arquivo,
+      });
+
+      toast.success(`Documento "${form.titulo}" cadastrado!`);
+    }
+
     setForm(emptyForm);
     setErrors({});
+    setEditingId(null);
     setModalOpen(false);
-  };
+  } catch (error) {
+    console.error(error);
+    toast.error(
+      editingId
+        ? 'Erro ao atualizar documento'
+        : 'Erro ao cadastrar documento'
+    );
+  }
+};
 
   const handleDelete = (id: string) => {
     deleteDocumento(id);
@@ -164,6 +236,22 @@ export function Documentos() {
     if (errors[key]) setErrors(prev => { const e = { ...prev }; delete e[key]; return e; });
   };
 
+  const handleEdit = (documento: Documento) => {
+  setEditingId(String(documento.id));
+
+  setForm({
+    titulo: documento.titulo,
+    tipo: documento.tipo,
+    morador: documento.morador,
+    moradorId: documento.moradorId ?? '',
+    dataEmissao: documento.dataEmissao,
+    arquivo: null,
+  });
+
+  setErrors({});
+  setModalOpen(true);
+};
+
   const openView = (doc: Documento) => {
     setViewDoc(doc);
     setSignMode(false);
@@ -177,52 +265,63 @@ export function Documentos() {
   };
 
   const getTipoLabel = (tipo: string) => TIPO_LABELS[tipo] || tipo;
-
   const getDocumentContent = (doc: Documento) => {
-    const morador = moradores.find(m => m.id === doc.moradorId);
-    const dataEmissao = new Date(doc.dataEmissao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const morador = moradores.find(m => m.id === doc.moradorId);
 
-    if (doc.tipo === 'declaracao') {
-      return `DECLARAÇÃO
+  const dataEmissao = new Date(doc.dataEmissao).toLocaleDateString(
+    'pt-BR',
+    {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    }
+  );
+
+  if (doc.tipo === 'declaracao') {
+    return `DECLARAÇÃO
 
 Cachoeira do Castanho, Amazonas, ${dataEmissao}
 
-Declaro, para os devidos fins, que ${doc.morador}${morador?.cpf ? ', portador do CPF nº ' + morador.cpf + ',' : ''} é morador regularmente cadastrado na comunidade Cachoeira do Castanho, município de Amazonas.
+Declaro, para os devidos fins, que ${doc.morador}${
+      morador?.cpf ? ', portador do CPF nº ' + morador.cpf + ',' : ','
+    } é morador regularmente cadastrado na comunidade Cachoeira do Castanho, município de Amazonas.
 
 ${morador?.endereco ? 'Endereço: ' + morador.endereco + '.' : ''}
 ${morador?.ocupacao ? 'Ocupação: ' + morador.ocupacao + '.' : ''}
 
-Esta declaração é expedida a pedido do(a) interessado(a), para fins que se fizerem necessários.
+Esta declaração é expedida a pedido do(a) interessado(a), para fins que se fizerem necessários.`;
+  }
 
-Documento: ${doc.arquivo}`;
-    }
-
-    if (doc.tipo === 'certidao') {
-      return `CERTIDÃO
+  if (doc.tipo === 'certidao') {
+    return `CERTIDÃO
 
 Comunidade Cachoeira do Castanho — Amazonas
 Data de Emissão: ${dataEmissao}
 
-CERTIFICA-SE que ${doc.morador}${morador?.cpf ? ' (CPF: ' + morador.cpf + ')' : ''} possui registro ativo na comunidade Cachoeira do Castanho, conforme cadastro comunitário vigente.
+CERTIFICA-SE que ${doc.morador}${
+      morador?.cpf ? ' (CPF: ' + morador.cpf + ')' : ''
+    } possui registro ativo na comunidade Cachoeira do Castanho, conforme cadastro comunitário vigente.
 
-${morador?.dataNascimento ? 'Data de Nascimento: ' + new Date(morador.dataNascimento).toLocaleDateString('pt-BR') : ''}
+${
+  morador?.dataNascimento
+    ? 'Data de Nascimento: ' +
+      new Date(morador.dataNascimento).toLocaleDateString('pt-BR')
+    : ''
+}
 ${morador?.rg ? 'RG: ' + morador.rg : ''}
 
-Esta certidão é válida como documento comprobatório de residência e vínculo comunitário.
+Esta certidão é válida como documento comprobatório de residência e vínculo comunitário.`;
+  }
 
-Referência: ${doc.arquivo}`;
-    }
-
-    return `${doc.tipo.toUpperCase()}
+  return `${doc.tipo.toUpperCase()}
 
 Comunidade Cachoeira do Castanho — Amazonas
 Data: ${dataEmissao}
 
 Morador: ${doc.morador}
-Arquivo: ${doc.arquivo}
 
 Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
-  };
+};
 
   return (
     <div className="space-y-6">
@@ -322,19 +421,36 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
 
                     {/* Actions */}
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => openView(documento)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors"
-                      >
-                        <Eye size={13} /> Visualizar
-                      </button>
-                      <button
-                        onClick={() => toast.success(`Download iniciado: ${documento.titulo}`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted transition-colors"
-                      >
-                        <Download size={13} /> Baixar
-                      </button>
-                    </div>
+  <button
+    onClick={() => openView(documento)}
+    className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors"
+  >
+    <Eye size={13} /> Visualizar
+  </button>
+
+  {!isMorador && (
+    <button
+      onClick={() => handleEdit(documento)}
+      className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors"
+    >
+      <PenLine size={13} /> Editar
+    </button>
+  )}
+
+  <button
+    onClick={() => {
+  const link = document.createElement('a');
+  link.href = documento.arquivo;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.download = documento.arquivo.split('/').pop() || documento.titulo;
+  link.click();
+}}
+    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted transition-colors"
+  >
+    <Download size={13} /> Baixar
+  </button>
+</div>
                   </div>
                 </div>
               </CardContent>
@@ -361,8 +477,15 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
           <div className="absolute inset-0 bg-black/50" onClick={() => setModalOpen(false)} />
           <div className="relative bg-card rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-foreground">Novo Documento</h2>
-              <button onClick={() => setModalOpen(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
+              <h2 className="text-foreground">
+  {editingId ? 'Editar Documento' : 'Novo Documento'}
+</h2>
+              <button onClick={() => {
+  setModalOpen(false);
+  setEditingId(null);
+  setForm(emptyForm);
+  setErrors({});
+}} className="p-2 hover:bg-muted rounded-lg transition-colors">
                 <X size={20} className="text-muted-foreground" />
               </button>
             </div>
@@ -407,16 +530,66 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
               </div>
 
               <div>
-                <label className="block text-sm text-foreground mb-1">Nome do Arquivo *</label>
-                <input type="text" value={form.arquivo} onChange={e => field('arquivo', e.target.value)}
-                  placeholder="Ex: declaracao_001.pdf" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                {errors.arquivo && <p className="text-xs text-destructive mt-1">{errors.arquivo}</p>}
-              </div>
+  <label className="block text-sm text-foreground mb-1">
+    Arquivo {!editingId && '*'}
+  </label>
+
+  <input
+    type="file"
+    accept=".pdf,.jpg,.jpeg,.png"
+    onChange={e => {
+      const file = e.target.files?.[0] || null;
+
+      setForm(prev => ({
+        ...prev,
+        arquivo: file
+      }));
+
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.arquivo;
+        return next;
+      });
+    }}
+    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+  />
+
+  {editingId && (
+    <p className="text-xs text-muted-foreground mt-1">
+      Deixe vazio para manter o arquivo atual.
+    </p>
+  )}
+
+  {form.arquivo && (
+    <p className="text-xs text-muted-foreground mt-1">
+      Novo arquivo: {form.arquivo.name}
+    </p>
+  )}
+
+  {errors.arquivo && (
+    <p className="text-xs text-destructive mt-1">
+      {errors.arquivo}
+    </p>
+  )}
+</div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">Cancelar</button>
+                <button type="button" onClick={() => {
+  setModalOpen(false);
+  setEditingId(null);
+  setForm(emptyForm);
+  setErrors({});
+}} className="flex-1 px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">Cancelar</button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-                  <Plus size={16} /> Cadastrar Documento
+                  {editingId ? (
+  <>
+    <CheckCircle2 size={16} /> Salvar Alterações
+  </>
+) : (
+  <>
+    <Plus size={16} /> Cadastrar Documento
+  </>
+)}
                 </button>
               </div>
             </form>
@@ -447,7 +620,14 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
                   </button>
                 )}
                 <button
-                  onClick={() => toast.success(`Download: ${viewDoc.arquivo}`)}
+                  onClick={() => {
+  const link = document.createElement('a');
+  link.href = viewDoc.arquivo;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.download = viewDoc.arquivo.split('/').pop() || viewDoc.titulo;
+  link.click();
+}}
                   className="p-2 border border-border rounded-lg text-xs hover:bg-muted transition-colors"
                   title="Baixar"
                 >
@@ -476,8 +656,23 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
 
                 {/* Body */}
                 <pre className="text-gray-800 text-sm font-sans leading-relaxed whitespace-pre-wrap mb-6">
-                  {getDocumentContent(viewDoc)}
-                </pre>
+  {getDocumentContent(viewDoc)}
+</pre>
+                {viewDoc.arquivo.toLowerCase().match(/\.(jpg|jpeg|png)$/) ? (
+  <div className="flex justify-center">
+    <img
+      src={viewDoc.arquivo}
+      alt={viewDoc.titulo}
+      className="max-w-full max-h-[60vh] object-contain rounded-lg"
+    />
+  </div>
+) : (
+  <iframe
+    src={viewDoc.arquivo}
+    title={viewDoc.titulo}
+    className="w-full h-[60vh] rounded-lg border border-gray-200"
+  />
+)}
 
                 {/* Signature area */}
                 <div className="mt-8 pt-4 border-t border-gray-200">

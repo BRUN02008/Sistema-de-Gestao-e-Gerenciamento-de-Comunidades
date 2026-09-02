@@ -59,18 +59,44 @@ async function apiFetch<T = unknown>(
   options: RequestInit = {},
   tentarRenovar = true
 ): Promise<T> {
-const token = localStorage.getItem(
-  'sisgest_access'
-);
+
+  const token = localStorage.getItem(
+    'sisgest_access'
+  );
 
   const headers = new Headers(
     options.headers
   );
 
-  headers.set(
-    'Content-Type',
-    'application/json'
-  );
+  /*
+   * ============================================================
+   * CONTENT-TYPE
+   * ============================================================
+   *
+   * Se o body for FormData, NÃO definimos Content-Type.
+   *
+   * O navegador precisa definir automaticamente:
+   *
+   * multipart/form-data; boundary=...
+   *
+   * Caso contrário, usamos JSON normalmente.
+   */
+
+  if (!(options.body instanceof FormData)) {
+    headers.set(
+      'Content-Type',
+      'application/json'
+    );
+  } else {
+    headers.delete('Content-Type');
+  }
+
+
+  /*
+   * ============================================================
+   * AUTENTICAÇÃO
+   * ============================================================
+   */
 
   if (token) {
     headers.set(
@@ -78,6 +104,7 @@ const token = localStorage.getItem(
       `Bearer ${token}`
     );
   }
+
 
   let response = await fetch(
     `${API_URL}${endpoint}`,
@@ -108,19 +135,10 @@ const token = localStorage.getItem(
 
     if (novoToken) {
 
-      /*
-       * Atualiza o Authorization
-       * com o novo token.
-       */
-
       headers.set(
         'Authorization',
         `Bearer ${novoToken}`
       );
-
-      /*
-       * Repete a requisição original.
-       */
 
       response = await fetch(
         `${API_URL}${endpoint}`,
@@ -131,11 +149,6 @@ const token = localStorage.getItem(
       );
 
     } else {
-
-      /*
-       * O refresh também não funcionou.
-       * Nesse caso a sessão realmente terminou.
-       */
 
       localStorage.removeItem(
         'sisgest_access'
@@ -158,59 +171,59 @@ const token = localStorage.getItem(
    * ============================================================
    */
 
-const text = await response.text();
+  const text = await response.text();
 
-let data: unknown;
+  let data: unknown;
 
-try {
-  data = text ? JSON.parse(text) : null;
-} catch {
-  data = text;
-}
-
-
-/*
- * ============================================================
- * ERROS
- * ============================================================
- */
-
-if (!response.ok) {
-
-  console.error(
-    'ERRO COMPLETO DA API:',
-    data
-  );
-
-  let mensagem =
-    'Erro ao comunicar com o servidor.';
-
-  if (
-    typeof data === 'object' &&
-    data !== null
-  ) {
-
-    const erro = data as {
-      detail?: string;
-      error?: string;
-    };
-
-    mensagem =
-      erro.detail ||
-      erro.error ||
-      JSON.stringify(data);
-
-  } else if (
-    typeof data === 'string'
-  ) {
-
-    mensagem = data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
   }
 
-  throw new Error(mensagem);
-}
 
-return data as T;
+  /*
+   * ============================================================
+   * ERROS
+   * ============================================================
+   */
+
+  if (!response.ok) {
+
+    console.error(
+      'ERRO COMPLETO DA API:',
+      data
+    );
+
+    let mensagem =
+      'Erro ao comunicar com o servidor.';
+
+    if (
+      typeof data === 'object' &&
+      data !== null
+    ) {
+
+      const erro = data as {
+        detail?: string;
+        error?: string;
+      };
+
+      mensagem =
+        erro.detail ||
+        erro.error ||
+        JSON.stringify(data);
+
+    } else if (
+      typeof data === 'string'
+    ) {
+
+      mensagem = data;
+    }
+
+    throw new Error(mensagem);
+  }
+
+  return data as T;
 }
 
 
@@ -227,41 +240,57 @@ export const api = {
   ) =>
     apiFetch(endpoint),
 
+
   post: (
     endpoint: string,
-    body: unknown
+    body: unknown | FormData
   ) =>
     apiFetch(
       endpoint,
       {
         method: 'POST',
-        body: JSON.stringify(body),
+
+        body:
+          body instanceof FormData
+            ? body
+            : JSON.stringify(body),
       }
     ),
 
+
   put: (
     endpoint: string,
-    body: unknown
+    body: unknown | FormData
   ) =>
     apiFetch(
       endpoint,
       {
         method: 'PUT',
-        body: JSON.stringify(body),
+
+        body:
+          body instanceof FormData
+            ? body
+            : JSON.stringify(body),
       }
     ),
 
+
   patch: (
     endpoint: string,
-    body: unknown
+    body: unknown | FormData
   ) =>
     apiFetch(
       endpoint,
       {
         method: 'PATCH',
-        body: JSON.stringify(body),
+
+        body:
+          body instanceof FormData
+            ? body
+            : JSON.stringify(body),
       }
     ),
+
 
   delete: (
     endpoint: string
@@ -272,4 +301,4 @@ export const api = {
         method: 'DELETE',
       }
     ),
-}; 
+};
