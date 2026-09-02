@@ -23,8 +23,6 @@ import {
   mockAtividades,
   mockDocumentos,
   mockDependentes,
-  mockRelatorios,
-  mockOficios,
 } from '../data/mockData';
 
 import { api } from '../../services/api';
@@ -127,16 +125,31 @@ addDespesa: (
   // Relatórios
   relatorios: RelatorioAtividade[];
   addRelatorio: (
-    r: Omit<RelatorioAtividade, 'id'>
-  ) => RelatorioAtividade;
-  updateRelatorio: (r: RelatorioAtividade) => void;
-  deleteRelatorio: (id: string) => void;
+  r: Omit<RelatorioAtividade, 'id'>
+) => Promise<RelatorioAtividade>;
+
+updateRelatorio: (
+  r: RelatorioAtividade
+) => Promise<void>;
+
+deleteRelatorio: (
+  id: string
+) => Promise<void>;
 
   // Ofícios
-  oficios: Oficio[];
-  addOficio: (o: Omit<Oficio, 'id'>) => Oficio;
-  updateOficio: (o: Oficio) => void;
-  deleteOficio: (id: string) => void;
+oficios: Oficio[];
+
+addOficio: (
+  o: Omit<Oficio, 'id'>
+) => Promise<Oficio>;
+
+updateOficio: (
+  o: Oficio
+) => Promise<void>;
+
+deleteOficio: (
+  id: string
+) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(
@@ -175,6 +188,34 @@ interface DespesaAPI {
   responsavel: string;
   descricao: string;
   criado_em?: string;
+}
+
+interface OficioAPI {
+  id: number | string;
+  numero: string;
+  titulo: string;
+  destinatario: string;
+  assunto: string;
+  data_emissao: string;
+  data_protocolo?: string | null;
+  numero_protocolo: string;
+  status: Oficio['status'];
+  observacoes: string;
+  criado_em?: string;
+  atualizado_em?: string;
+}
+
+interface RelatorioAPI {
+  id: number | string;
+  titulo: string;
+  descricao: string;
+  data: string;
+  responsavel: string;
+  categoria: string;
+  status: RelatorioAtividade['status'];
+  imagens: string[];
+  criado_em?: string;
+  atualizado_em?: string;
 }
 
 interface EventoAgendaAPI {
@@ -470,15 +511,87 @@ useEffect(() => {
   carregarDespesas();
 }, []);
 
-  const [relatorios, setRelatorios] =
-    useState<RelatorioAtividade[]>(() =>
-      load('relatorios', mockRelatorios)
-    );
+  const [relatorios, setRelatorios] = useState<RelatorioAtividade[]>([]);
+  useEffect(() => {
+  async function carregarRelatorios() {
+    try {
+      const data = await api.get('/relatorios/');
 
-  const [oficios, setOficios] =
-    useState<Oficio[]>(() =>
-      load('oficios', mockOficios)
-    );
+      if (!Array.isArray(data)) {
+        setRelatorios([]);
+        return;
+      }
+
+      const relatoriosApi: RelatorioAtividade[] = (
+        data as RelatorioAPI[]
+      ).map((r) => ({
+        id: String(r.id),
+        titulo: r.titulo,
+        descricao: r.descricao,
+        data: r.data,
+        responsavel: r.responsavel,
+        categoria: r.categoria,
+        status: r.status,
+        imagens: r.imagens ?? [],
+      }));
+
+      setRelatorios(relatoriosApi);
+      save('relatorios', relatoriosApi);
+    } catch (error) {
+      console.error('Erro ao carregar relatórios do Django:', error);
+      setRelatorios(load('relatorios', []));
+    }
+  }
+
+  carregarRelatorios();
+}, []);
+
+  const [oficios, setOficios] = useState<Oficio[]>([]);
+
+useEffect(() => {
+  async function carregarOficios() {
+    try {
+      const data = await api.get('/oficios/');
+
+      if (!Array.isArray(data)) {
+        setOficios([]);
+        return;
+      }
+
+      const oficiosApi: Oficio[] = (
+        data as OficioAPI[]
+      ).map((o) => ({
+        id: String(o.id),
+        numero: o.numero,
+        titulo: o.titulo,
+        destinatario: o.destinatario,
+        assunto: o.assunto,
+        dataEmissao: o.data_emissao,
+        dataProtocolo: o.data_protocolo ?? '',
+        numeroProtocolo: o.numero_protocolo,
+        status: o.status,
+        observacoes: o.observacoes,
+      }));
+
+      setOficios(oficiosApi);
+
+      // Mantém uma cópia local apenas como fallback
+      save('oficios', oficiosApi);
+
+    } catch (error) {
+      console.error(
+        'Erro ao carregar ofícios do Django:',
+        error
+      );
+
+      setOficios(
+        load('oficios', [])
+      );
+    }
+  }
+
+  carregarOficios();
+}, []);
 
 
   /*
@@ -1284,15 +1397,28 @@ const deleteInvestimento = useCallback(
    * ============================================================
    */
 
-  const addRelatorio = useCallback(
-    (
-      r: Omit<RelatorioAtividade, 'id'>
-    ): RelatorioAtividade => {
-      const novo = {
-        ...r,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+ const addRelatorio = useCallback(
+  async (r: Omit<RelatorioAtividade, 'id'>): Promise<RelatorioAtividade> => {
+    try {
+      const data = (await api.post('/relatorios/', {
+        titulo: r.titulo,
+        descricao: r.descricao,
+        data: r.data,
+        responsavel: r.responsavel,
+        categoria: r.categoria,
+        status: r.status,
+        imagens: r.imagens ?? [],
+      })) as RelatorioAPI;
+
+      const novo: RelatorioAtividade = {
+        id: String(data.id),
+        titulo: data.titulo,
+        descricao: data.descricao,
+        data: data.data,
+        responsavel: data.responsavel,
+        categoria: data.categoria,
+        status: data.status,
+        imagens: data.imagens ?? [],
       };
 
       setRelatorios((prev) => {
@@ -1302,95 +1428,231 @@ const deleteInvestimento = useCallback(
       });
 
       return novo;
-    },
-    []
-  );
+    } catch (error) {
+      console.error('Erro ao cadastrar relatório:', error);
+      throw error;
+    }
+  },
+  []
+);
 
-  const updateRelatorio = useCallback(
-    (r: RelatorioAtividade) => {
+const updateRelatorio = useCallback(
+  async (r: RelatorioAtividade): Promise<void> => {
+    try {
+      const data = (await api.put(`/relatorios/${r.id}/`, {
+        titulo: r.titulo,
+        descricao: r.descricao,
+        data: r.data,
+        responsavel: r.responsavel,
+        categoria: r.categoria,
+        status: r.status,
+        imagens: r.imagens ?? [],
+      })) as RelatorioAPI;
+
+      const atualizado: RelatorioAtividade = {
+        id: String(data.id),
+        titulo: data.titulo,
+        descricao: data.descricao,
+        data: data.data,
+        responsavel: data.responsavel,
+        categoria: data.categoria,
+        status: data.status,
+        imagens: data.imagens ?? [],
+      };
+
       setRelatorios((prev) => {
-        const next = prev.map((x) =>
-          x.id === r.id ? r : x
+        const next = prev.map((relatorio) =>
+          String(relatorio.id) === String(atualizado.id)
+            ? atualizado
+            : relatorio
         );
 
         save('relatorios', next);
-
         return next;
       });
-    },
-    []
-  );
+    } catch (error) {
+      console.error('Erro ao atualizar relatório:', error);
+      throw error;
+    }
+  },
+  []
+);
 
-  const deleteRelatorio = useCallback(
-    (id: string) => {
+const deleteRelatorio = useCallback(
+  async (id: string): Promise<void> => {
+    try {
+      await api.delete(`/relatorios/${id}/`);
+
       setRelatorios((prev) => {
         const next = prev.filter(
-          (x) => x.id !== id
+          (relatorio) => String(relatorio.id) !== String(id)
         );
 
         save('relatorios', next);
-
         return next;
       });
-    },
-    []
-  );
+    } catch (error) {
+      console.error('Erro ao excluir relatório:', error);
+      throw error;
+    }
+  },
+  []
+);
 
   /*
-   * ============================================================
-   * OFÍCIOS
-   * ============================================================
-   */
+ * ============================================================
+ * OFÍCIOS
+ * ============================================================
+ */
 
-  const addOficio = useCallback(
-    (o: Omit<Oficio, 'id'>): Oficio => {
-      const novo = {
-        ...o,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+const addOficio = useCallback(
+  async (
+    o: Omit<Oficio, 'id'>
+  ): Promise<Oficio> => {
+    try {
+      const data = (await api.post(
+        '/oficios/',
+        {
+          numero: o.numero,
+          titulo: o.titulo,
+          destinatario: o.destinatario,
+          assunto: o.assunto,
+          data_emissao: o.dataEmissao,
+          data_protocolo: o.dataProtocolo || null,
+          numero_protocolo: o.numeroProtocolo,
+          status: o.status,
+          observacoes: o.observacoes,
+        }
+      )) as OficioAPI;
+
+      const novo: Oficio = {
+        id: String(data.id),
+        numero: data.numero,
+        titulo: data.titulo,
+        destinatario: data.destinatario,
+        assunto: data.assunto,
+        dataEmissao: data.data_emissao,
+        dataProtocolo:
+          data.data_protocolo ?? '',
+        numeroProtocolo:
+          data.numero_protocolo,
+        status: data.status,
+        observacoes: data.observacoes,
       };
 
       setOficios((prev) => {
         const next = [...prev, novo];
+
         save('oficios', next);
+
         return next;
       });
 
       return novo;
-    },
-    []
-  );
 
-  const updateOficio = useCallback(
-    (o: Oficio) => {
+    } catch (error) {
+      console.error(
+        'Erro ao cadastrar ofício:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
+
+const updateOficio = useCallback(
+  async (
+    o: Oficio
+  ): Promise<void> => {
+    try {
+      const data = (await api.put(
+        `/oficios/${o.id}/`,
+        {
+          numero: o.numero,
+          titulo: o.titulo,
+          destinatario: o.destinatario,
+          assunto: o.assunto,
+          data_emissao: o.dataEmissao,
+          data_protocolo:
+            o.dataProtocolo || null,
+          numero_protocolo:
+            o.numeroProtocolo,
+          status: o.status,
+          observacoes: o.observacoes,
+        }
+      )) as OficioAPI;
+
+      const atualizado: Oficio = {
+        id: String(data.id),
+        numero: data.numero,
+        titulo: data.titulo,
+        destinatario: data.destinatario,
+        assunto: data.assunto,
+        dataEmissao: data.data_emissao,
+        dataProtocolo:
+          data.data_protocolo ?? '',
+        numeroProtocolo:
+          data.numero_protocolo,
+        status: data.status,
+        observacoes: data.observacoes,
+      };
+
       setOficios((prev) => {
         const next = prev.map((x) =>
-          x.id === o.id ? o : x
+          String(x.id) === String(atualizado.id)
+            ? atualizado
+            : x
         );
 
         save('oficios', next);
 
         return next;
       });
-    },
-    []
-  );
 
-  const deleteOficio = useCallback(
-    (id: string) => {
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar ofício:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
+
+const deleteOficio = useCallback(
+  async (
+    id: string
+  ): Promise<void> => {
+    try {
+      await api.delete(
+        `/oficios/${id}/`
+      );
+
       setOficios((prev) => {
         const next = prev.filter(
-          (x) => x.id !== id
+          (o) => String(o.id) !== String(id)
         );
 
         save('oficios', next);
 
         return next;
       });
-    },
-    []
-  );
+
+    } catch (error) {
+      console.error(
+        'Erro ao excluir ofício:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
 
   return (
     <DataContext.Provider
