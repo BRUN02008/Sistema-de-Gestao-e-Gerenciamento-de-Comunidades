@@ -62,10 +62,10 @@ export interface EventoAgenda {
   titulo: string;
   descricao: string;
   data: string;
-  horario: string;
+  hora: string;
   local: string;
   responsavel: string;
-  tipo: 'reuniao' | 'atividade' | 'evento' | 'outros';
+  tipo: 'reuniao' | 'evento' | 'assembleia' | 'outro' | 'atividade';
 }
 
 export const mockMoradores: Morador[] = [
@@ -305,7 +305,7 @@ export const mockEventos: EventoAgenda[] = [
     titulo: 'Reunião Comunitária Mensal',
     descricao: 'Discussão sobre melhorias na comunidade e planejamento de atividades',
     data: '2024-05-10',
-    horario: '18:00',
+    hora: '18:00',
     local: 'Centro Comunitário',
     responsavel: 'Maria Silva',
     tipo: 'reuniao'
@@ -315,7 +315,7 @@ export const mockEventos: EventoAgenda[] = [
     titulo: 'Mutirão de Limpeza do Rio',
     descricao: 'Ação coletiva de limpeza das margens do rio',
     data: '2024-05-12',
-    horario: '08:00',
+    hora: '08:00',
     local: 'Margem do Rio Amazonas',
     responsavel: 'João Santos',
     tipo: 'atividade'
@@ -325,7 +325,7 @@ export const mockEventos: EventoAgenda[] = [
     titulo: 'Festa de São João',
     descricao: 'Celebração tradicional com quadrilha e comidas típicas',
     data: '2024-06-24',
-    horario: '19:00',
+    hora: '19:00',
     local: 'Praça Central',
     responsavel: 'Ana Costa',
     tipo: 'evento'
@@ -335,7 +335,7 @@ export const mockEventos: EventoAgenda[] = [
     titulo: 'Oficina de Artesanato',
     descricao: 'Capacitação em técnicas de cestaria com fibras naturais',
     data: '2024-05-15',
-    horario: '14:00',
+    hora: '14:00',
     local: 'Casa da Cultura',
     responsavel: 'Maria das Graças Souza',
     tipo: 'atividade'
@@ -345,10 +345,10 @@ export const mockEventos: EventoAgenda[] = [
     titulo: 'Atendimento Médico',
     descricao: 'Atendimento médico itinerante da Secretaria de Saúde',
     data: '2024-05-18',
-    horario: '09:00',
+    hora: '09:00',
     local: 'Posto de Saúde Comunitário',
     responsavel: 'Equipe de Saúde',
-    tipo: 'outros'
+    tipo: 'outro'
   }
 ];
 

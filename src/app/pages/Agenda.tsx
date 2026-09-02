@@ -8,24 +8,25 @@ import { toast } from 'sonner';
 
 const TIPO_OPTIONS = [
   { value: 'reuniao', label: 'Reunião' },
-  { value: 'atividade', label: 'Atividade' },
   { value: 'evento', label: 'Evento' },
-  { value: 'outros', label: 'Outros' }
+  { value: 'assembleia', label: 'Assembleia' },
+  { value: 'atividade', label: 'Atividade' },
+  { value: 'outro', label: 'Outro' }
 ];
 
 const TIPO_COLORS: Record<string, string> = {
   reuniao: 'bg-primary/20 text-primary',
-  atividade: 'bg-secondary/20 text-secondary',
   evento: 'bg-accent/20 text-accent',
-  outros: 'bg-muted text-muted-foreground'
+  atividade: 'bg-secondary/20 text-secondary',
+  outro: 'bg-muted text-muted-foreground'
 };
 
 const TIPO_LABELS: Record<string, string> = {
-  reuniao: 'Reunião', atividade: 'Atividade', evento: 'Evento', outros: 'Outros'
+  reuniao: 'Reunião', evento: 'Evento', assembleia: 'Assembleia', atividade: 'Atividade', outro: 'Outros'
 };
 
 const emptyForm = {
-  titulo: '', descricao: '', data: '', horario: '', local: '',
+  titulo: '', descricao: '', data: '', hora: '', local: '',
   responsavel: '', tipo: 'reuniao' as EventoAgenda['tipo']
 };
 
@@ -56,7 +57,7 @@ export function Agenda() {
     const e: Record<string, string> = {};
     if (!form.titulo.trim()) e.titulo = 'Título é obrigatório';
     if (!form.data) e.data = 'Data é obrigatória';
-    if (!form.horario) e.horario = 'Horário é obrigatório';
+    if (!form.hora) e.hora = 'Horário é obrigatório';
     if (!form.local.trim()) e.local = 'Local é obrigatório';
     if (!form.responsavel.trim()) e.responsavel = 'Responsável é obrigatório';
     return e;
@@ -64,7 +65,7 @@ export function Agenda() {
 
   const openModal = (evento?: EventoAgenda) => {
     if (evento) {
-      setForm({ titulo: evento.titulo, descricao: evento.descricao, data: evento.data, horario: evento.horario, local: evento.local, responsavel: evento.responsavel, tipo: evento.tipo });
+      setForm({ titulo: evento.titulo, descricao: evento.descricao, data: evento.data, hora: evento.hora, local: evento.local, responsavel: evento.responsavel, tipo: evento.tipo });
       setEditId(evento.id);
     } else {
       setForm(emptyForm);
@@ -187,7 +188,7 @@ export function Agenda() {
                         {/* Info chips — horizontal wrap */}
                         <div className="flex flex-wrap gap-x-4 gap-y-1">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock size={12} />{evento.horario}
+                            <Clock size={12} />{evento.hora}
                           </span>
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <MapPin size={12} />{evento.local}
@@ -252,8 +253,8 @@ export function Agenda() {
                 </div>
                 <div>
                   <label className="block text-sm text-foreground mb-1.5">Horário *</label>
-                  <input type="time" value={form.horario} onChange={e => field('horario', e.target.value)} className={inputCls} />
-                  {errors.horario && <p className="text-xs text-destructive mt-1">{errors.horario}</p>}
+                  <input type="time" value={form.hora} onChange={e => field('hora', e.target.value)} className={inputCls} />
+                  {errors.hora && <p className="text-xs text-destructive mt-1">{errors.hora}</p>}
                 </div>
               </div>
 

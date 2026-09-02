@@ -23,7 +23,6 @@ import {
   mockAtividades,
   mockDocumentos,
   mockDependentes,
-  mockEventos,
   mockRelatorios,
   mockOficios,
 } from '../data/mockData';
@@ -66,7 +65,7 @@ familias: Familia[];
 addFamilia: (
   f: Omit<Familia, 'id'>
 ) => Promise<Familia>;
-updateFamilia: (f: Familia) => void;
+updateFamilia: (f: Familia) => Promise<void>;
 deleteFamilia: (id: string) => Promise<void>;
 
   // Atividades
@@ -82,9 +81,18 @@ deleteFamilia: (id: string) => Promise<void>;
 
   // Eventos
   eventos: EventoAgenda[];
-  addEvento: (e: Omit<EventoAgenda, 'id'>) => EventoAgenda;
-  updateEvento: (e: EventoAgenda) => void;
-  deleteEvento: (id: string) => void;
+
+addEvento: (
+  e: Omit<EventoAgenda, 'id'>
+) => Promise<EventoAgenda>;
+
+updateEvento: (
+  e: EventoAgenda
+) => Promise<void>;
+
+deleteEvento: (
+  id: string
+) => Promise<void>;
 
   // Mensalidades
   mensalidades: Mensalidade[];
@@ -113,8 +121,8 @@ deleteInvestimento: (
 addDespesa: (
   d: Omit<Despesa, 'id'>
 ) => Promise<Despesa>;
-  updateDespesa: (d: Despesa) => void;
-  deleteDespesa: (id: string) => void;
+  updateDespesa: (d: Despesa) => Promise<void>;
+  deleteDespesa: (id: string) => Promise<void>;
 
   // Relatórios
   relatorios: RelatorioAtividade[];
@@ -161,12 +169,23 @@ type InvestimentoAPI = {
 
 interface DespesaAPI {
   id: number | string;
-  titulo: string;
   categoria: Despesa['categoria'];
   valor: number | string;
   data: string;
   responsavel: string;
   descricao: string;
+  criado_em?: string;
+}
+
+interface EventoAgendaAPI {
+  id: number | string;
+  titulo: string;
+  descricao: string;
+  data: string;
+  hora: string;
+  local: string;
+  responsavel: string;
+  tipo: 'reuniao' | 'evento' | 'assembleia' | 'outro';
   criado_em?: string;
 }
 
@@ -278,10 +297,43 @@ useEffect(() => {
       load('dependentes', mockDependentes)
     );
 
-  const [eventos, setEventos] =
-    useState<EventoAgenda[]>(() =>
-      load('eventos', mockEventos)
-    );
+  const [eventos, setEventos] = useState<EventoAgenda[]>([]);
+  useEffect(() => {
+  async function carregarEventos() {
+    try {
+      const data = await api.get('/agenda/');
+
+      if (!Array.isArray(data)) {
+        setEventos([]);
+        return;
+      }
+
+      const eventosApi: EventoAgenda[] = (
+        data as EventoAgendaAPI[]
+      ).map((evento) => ({
+        id: String(evento.id),
+        titulo: evento.titulo,
+        descricao: evento.descricao,
+        data: evento.data,
+        hora: evento.hora,
+        local: evento.local,
+        responsavel: evento.responsavel,
+        tipo: evento.tipo,
+      }));
+
+      setEventos(eventosApi);
+    } catch (error) {
+      console.error(
+        'Erro ao carregar eventos do Django:',
+        error
+      );
+
+      setEventos([]);
+    }
+  }
+
+  carregarEventos();
+}, []);
 
   const [mensalidades, setMensalidades] = useState<Mensalidade[]>([]);
 
@@ -391,7 +443,6 @@ useEffect(() => {
       const despesasApi: Despesa[] =
         (data as DespesaAPI[]).map((d) => ({
           id: String(d.id),
-          titulo: d.titulo,
           categoria: d.categoria,
           valor: Number(d.valor),
           data: d.data,
@@ -430,93 +481,6 @@ useEffect(() => {
     );
 
 
-
-    useEffect(() => {
-  async function carregarMensalidades() {
-    try {
-      const data = await api.get('/mensalidades/');
-
-      if (!Array.isArray(data)) {
-        setMensalidades([]);
-        return;
-      }
-
-      const mensalidadesApi: Mensalidade[] =
-        (data as MensalidadeAPI[]).map((m) => ({
-          id: String(m.id),
-
-          moradorId: '',
-          moradorNome: '',
-          familia: String(m.familia),
-
-          mesReferencia: m.mes_referencia,
-          valor: Number(m.valor),
-
-          status: m.status,
-
-          dataVencimento: m.data_vencimento,
-
-          dataPagamento:
-            m.data_pagamento || undefined,
-
-          metodoPagamento:
-            m.metodo_pagamento || undefined,
-        }));
-
-      setMensalidades(mensalidadesApi);
-    } catch (error) {
-      console.error(
-        'Erro ao carregar mensalidades do Django:',
-        error
-      );
-
-      setMensalidades([]);
-    }
-  }
-
-  carregarMensalidades();
-}, []);
-
-
-
-
-
-useEffect(() => {
-  async function carregarInvestimentos() {
-    try {
-      const data = await api.get('/investimentos/');
-
-      if (!Array.isArray(data)) {
-        setInvestimentos([]);
-        return;
-      }
-
-      const investimentosApi: Investimento[] =
-        (data as InvestimentoAPI[]).map((i) => ({
-          id: String(i.id),
-          titulo: i.titulo,
-          categoria: i.categoria,
-          valor: Number(i.valor),
-          data: i.data,
-          responsavel: i.responsavel,
-          status: i.status,
-          descricao: i.descricao,
-          observacoes: i.observacoes ?? undefined,
-        }));
-
-      setInvestimentos(investimentosApi);
-    } catch (error) {
-      console.error(
-        'Erro ao carregar investimentos do Django:',
-        error
-      );
-
-      setInvestimentos([]);
-    }
-  }
-
-  carregarInvestimentos();
-}, []);
   /*
    * ============================================================
    * MORADORES
@@ -676,19 +640,46 @@ useEffect(() => {
 );
 
   const updateFamilia = useCallback(
-    (f: Familia) => {
+  async (f: Familia): Promise<void> => {
+    try {
+      const data = (await api.put(
+        `/familias/${f.id}/`,
+        {
+          nome: f.nome,
+          responsavel: f.responsavel,
+          endereco: f.endereco,
+          total_membros: f.total_membros,
+        }
+      )) as Familia;
+
+      const atualizada: Familia = {
+        ...f,
+        ...data,
+        id: String(data.id),
+      };
+
       setFamilias((prev) => {
         const next = prev.map((x) =>
-          x.id === f.id ? f : x
+          String(x.id) === String(atualizada.id)
+            ? atualizada
+            : x
         );
 
         save('familias', next);
 
         return next;
       });
-    },
-    []
-  );
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar família:',
+        error
+      );
+
+      throw error;
+    }
+  },
+  []
+);
 
   const deleteFamilia = useCallback(
   async (id: string): Promise<void> => {
@@ -754,54 +745,94 @@ useEffect(() => {
    */
 
   const addEvento = useCallback(
-    (e: Omit<EventoAgenda, 'id'>): EventoAgenda => {
-      const novo = {
-        ...e,
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}`,
+  async (e: Omit<EventoAgenda, 'id'>): Promise<EventoAgenda> => {
+    try {
+      const data = (await api.post('/agenda/', {
+        titulo: e.titulo,
+        descricao: e.descricao,
+        data: e.data,
+        hora: e.hora,
+        local: e.local,
+        responsavel: e.responsavel,
+        tipo: e.tipo,
+      })) as EventoAgendaAPI;
+
+      const novo: EventoAgenda = {
+        id: String(data.id),
+        titulo: data.titulo,
+        descricao: data.descricao,
+        data: data.data,
+        hora: data.hora,
+        local: data.local,
+        responsavel: data.responsavel,
+        tipo: data.tipo,
       };
 
-      setEventos((prev) => {
-        const next = [...prev, novo];
-        save('eventos', next);
-        return next;
-      });
+      setEventos((prev) => [...prev, novo]);
 
       return novo;
-    },
-    []
-  );
+    } catch (error) {
+      console.error('Erro ao cadastrar evento:', error);
+      throw error;
+    }
+  },
+  []
+);
 
   const updateEvento = useCallback(
-    (e: EventoAgenda) => {
-      setEventos((prev) => {
-        const next = prev.map((x) =>
-          x.id === e.id ? e : x
-        );
+  async (e: EventoAgenda): Promise<void> => {
+    try {
+      const data = (await api.put(`/agenda/${e.id}/`, {
+        titulo: e.titulo,
+        descricao: e.descricao,
+        data: e.data,
+        hora: e.hora,
+        local: e.local,
+        responsavel: e.responsavel,
+        tipo: e.tipo,
+      })) as EventoAgendaAPI;
 
-        save('eventos', next);
+      const atualizado: EventoAgenda = {
+        id: String(data.id),
+        titulo: data.titulo,
+        descricao: data.descricao,
+        data: data.data,
+        hora: data.hora,
+        local: data.local,
+        responsavel: data.responsavel,
+        tipo: data.tipo,
+      };
 
-        return next;
-      });
-    },
-    []
-  );
+      setEventos((prev) =>
+        prev.map((evento) =>
+          String(evento.id) === String(atualizado.id)
+            ? atualizado
+            : evento
+        )
+      );
+    } catch (error) {
+      console.error('Erro ao atualizar evento:', error);
+      throw error;
+    }
+  },
+  []
+);
 
   const deleteEvento = useCallback(
-    (id: string) => {
-      setEventos((prev) => {
-        const next = prev.filter(
-          (x) => x.id !== id
-        );
+  async (id: string): Promise<void> => {
+    try {
+      await api.delete(`/agenda/${id}/`);
 
-        save('eventos', next);
-
-        return next;
-      });
-    },
-    []
-  );
+      setEventos((prev) =>
+        prev.filter((evento) => String(evento.id) !== String(id))
+      );
+    } catch (error) {
+      console.error('Erro ao excluir evento:', error);
+      throw error;
+    }
+  },
+  []
+);
 
   /*
    * ============================================================

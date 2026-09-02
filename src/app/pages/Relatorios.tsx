@@ -307,7 +307,7 @@ export function Relatorios() {
             </CardContent></Card>
             <Card><CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-muted-foreground mb-1">Média de Membros</p><h2 className="text-foreground">{(mockFamilias.reduce((acc, f) => acc + f.totalMembros, 0) / mockFamilias.length).toFixed(1)}</h2></div>
+                <div><p className="text-sm text-muted-foreground mb-1">Média de Membros</p><h2 className="text-foreground">{(mockFamilias.reduce((acc, f) => acc + f.total_membros, 0) / mockFamilias.length).toFixed(1)}</h2></div>
                 <div className="bg-secondary/10 p-3 rounded-lg"><Users className="text-secondary" size={24} /></div>
               </div>
             </CardContent></Card>
@@ -328,7 +328,7 @@ export function Relatorios() {
                       <tr key={familia.id} className="border-b border-border hover:bg-muted/30">
                         <td className="py-3 px-4 text-sm">{familia.nome}</td>
                         <td className="py-3 px-4 text-sm">{familia.responsavel}</td>
-                        <td className="py-3 px-4 text-sm">{familia.totalMembros}</td>
+                        <td className="py-3 px-4 text-sm">{familia.total_membros}</td>
                         <td className="py-3 px-4 text-sm">{familia.endereco}</td>
                       </tr>
                     ))}
