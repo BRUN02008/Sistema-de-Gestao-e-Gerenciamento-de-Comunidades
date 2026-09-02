@@ -65,6 +65,7 @@ export interface EventoAgenda {
   hora: string;
   local: string;
   responsavel: string;
+  status?: 'pendente' | 'andamento' | 'concluida' | 'cancelada';
   tipo: 'reuniao' | 'evento' | 'assembleia' | 'outro' | 'atividade';
 }
 

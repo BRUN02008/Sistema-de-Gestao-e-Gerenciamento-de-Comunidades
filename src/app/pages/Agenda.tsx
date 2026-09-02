@@ -26,8 +26,14 @@ const TIPO_LABELS: Record<string, string> = {
 };
 
 const emptyForm = {
-  titulo: '', descricao: '', data: '', hora: '', local: '',
-  responsavel: '', tipo: 'reuniao' as EventoAgenda['tipo']
+  titulo: '',
+  descricao: '',
+  data: '',
+  hora: '',
+  local: '',
+  responsavel: '',
+  tipo: 'reuniao' as EventoAgenda['tipo'],
+  status: 'pendente' as EventoAgenda['status']
 };
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors";
@@ -65,7 +71,7 @@ export function Agenda() {
 
   const openModal = (evento?: EventoAgenda) => {
     if (evento) {
-      setForm({ titulo: evento.titulo, descricao: evento.descricao, data: evento.data, hora: evento.hora, local: evento.local, responsavel: evento.responsavel, tipo: evento.tipo });
+      setForm({ titulo: evento.titulo, descricao: evento.descricao, data: evento.data, hora: evento.hora, local: evento.local, responsavel: evento.responsavel, tipo: evento.tipo, status: evento.status });
       setEditId(evento.id);
     } else {
       setForm(emptyForm);
@@ -244,6 +250,25 @@ export function Agenda() {
                   {TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
+
+              {form.tipo === 'atividade' && (
+  <div>
+    <label className="block text-sm text-foreground mb-1.5">
+      Status
+    </label>
+
+    <select
+      value={form.status}
+      onChange={e => field('status', e.target.value)}
+      className={inputCls}
+    >
+      <option value="pendente">Pendente</option>
+      <option value="andamento">Em andamento</option>
+      <option value="concluida">Concluída</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+  </div>
+)}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

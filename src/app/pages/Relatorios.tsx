@@ -41,14 +41,14 @@ type Aba = 'moradores' | 'familias' | 'atividades' | 'relatorios_atividade' | 'o
 
 export function Relatorios() {
   const {
-    moradores: mockMoradores,
-    familias: mockFamilias,
-    atividades: mockAtividades,
-    relatorios,
-    oficios,
-    addRelatorio, updateRelatorio, deleteRelatorio,
-    addOficio, updateOficio, deleteOficio
-  } = useData();
+  moradores: mockMoradores,
+  familias: mockFamilias,
+  eventos,
+  relatorios,
+  oficios,
+  addRelatorio, updateRelatorio, deleteRelatorio,
+  addOficio, updateOficio, deleteOficio
+} = useData();
 
   const [tipoRelatorio, setTipoRelatorio] = useState<Aba>('moradores');
 
@@ -74,9 +74,19 @@ export function Relatorios() {
   })).filter(x => x.total > 0);
 
   const atividadesPorMes = [
-    { mes: 'Jan', total: 8 }, { mes: 'Fev', total: 12 }, { mes: 'Mar', total: 15 },
-    { mes: 'Abr', total: 10 }, { mes: 'Mai', total: mockAtividades.length }
-  ];
+  { mes: 'Jan', total: eventos.filter(e => e.data.startsWith('2026-01')).length },
+  { mes: 'Fev', total: eventos.filter(e => e.data.startsWith('2026-02')).length },
+  { mes: 'Mar', total: eventos.filter(e => e.data.startsWith('2026-03')).length },
+  { mes: 'Abr', total: eventos.filter(e => e.data.startsWith('2026-04')).length },
+  { mes: 'Mai', total: eventos.filter(e => e.data.startsWith('2026-05')).length },
+  { mes: 'Jun', total: eventos.filter(e => e.data.startsWith('2026-06')).length },
+  { mes: 'Jul', total: eventos.filter(e => e.data.startsWith('2026-07')).length },
+  { mes: 'Ago', total: eventos.filter(e => e.data.startsWith('2026-08')).length },
+  { mes: 'Set', total: eventos.filter(e => e.data.startsWith('2026-09')).length },
+  { mes: 'Out', total: eventos.filter(e => e.data.startsWith('2026-10')).length },
+  { mes: 'Nov', total: eventos.filter(e => e.data.startsWith('2026-11')).length },
+  { mes: 'Dez', total: eventos.filter(e => e.data.startsWith('2026-12')).length },
+];
 
   // Imagens (base64)
   const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -346,19 +356,19 @@ export function Relatorios() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card><CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-muted-foreground mb-1">Total</p><h2 className="text-foreground">{mockAtividades.length}</h2></div>
+                <div><p className="text-sm text-muted-foreground mb-1">Total</p><h2 className="text-foreground">{eventos.length}</h2></div>
                 <div className="bg-primary/10 p-3 rounded-lg"><BarChart3 className="text-primary" size={24} /></div>
               </div>
             </CardContent></Card>
             <Card><CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-muted-foreground mb-1">Concluídas</p><h2 className="text-foreground">{mockAtividades.filter(a => a.status === 'concluida').length}</h2></div>
+                <div><p className="text-sm text-muted-foreground mb-1">Concluídas</p><h2 className="text-foreground">{eventos.filter(e => e.status === 'concluida').length}</h2></div>
                 <div className="bg-secondary/10 p-3 rounded-lg"><Activity className="text-secondary" size={24} /></div>
               </div>
             </CardContent></Card>
             <Card><CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-muted-foreground mb-1">Pendentes</p><h2 className="text-foreground">{mockAtividades.filter(a => a.status === 'pendente').length}</h2></div>
+                <div><p className="text-sm text-muted-foreground mb-1">Pendentes</p><h2 className="text-foreground">{eventos.filter(e => e.status === 'pendente').length}</h2></div>
                 <div className="bg-accent/10 p-3 rounded-lg"><Clock className="text-accent" size={24} /></div>
               </div>
             </CardContent></Card>
