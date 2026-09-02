@@ -515,7 +515,7 @@ useEffect(() => {
   useEffect(() => {
   async function carregarRelatorios() {
     try {
-      const data = await api.get('/relatorios/');
+      const data = await api.get('/relatorios-atividade/');
 
       if (!Array.isArray(data)) {
         setRelatorios([]);
@@ -1400,7 +1400,7 @@ const deleteInvestimento = useCallback(
  const addRelatorio = useCallback(
   async (r: Omit<RelatorioAtividade, 'id'>): Promise<RelatorioAtividade> => {
     try {
-      const data = (await api.post('/relatorios/', {
+      const data = (await api.post('/relatorios-atividade/', {
         titulo: r.titulo,
         descricao: r.descricao,
         data: r.data,
@@ -1439,7 +1439,7 @@ const deleteInvestimento = useCallback(
 const updateRelatorio = useCallback(
   async (r: RelatorioAtividade): Promise<void> => {
     try {
-      const data = (await api.put(`/relatorios/${r.id}/`, {
+      const data = (await api.put(`/relatorios-atividade/${r.id}/`, {
         titulo: r.titulo,
         descricao: r.descricao,
         data: r.data,
@@ -1481,7 +1481,7 @@ const updateRelatorio = useCallback(
 const deleteRelatorio = useCallback(
   async (id: string): Promise<void> => {
     try {
-      await api.delete(`/relatorios/${id}/`);
+      await api.delete(`/relatorios-atividade/${id}/`);
 
       setRelatorios((prev) => {
         const next = prev.filter(
