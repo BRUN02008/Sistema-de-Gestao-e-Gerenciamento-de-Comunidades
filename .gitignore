@@ -10,3 +10,4 @@ backend/certs/
 backend/certs/
 backend/staticfiles/
 backend/backend/settings.py.backup
+!backend/certs/ca.pem
