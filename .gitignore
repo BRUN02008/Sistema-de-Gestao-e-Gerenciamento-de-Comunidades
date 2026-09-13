@@ -6,3 +6,7 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 backend/db.sqlite3
+backend/certs/
+backend/certs/
+backend/staticfiles/
+backend/backend/settings.py.backup
