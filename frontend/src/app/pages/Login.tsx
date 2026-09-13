@@ -96,7 +96,7 @@ if (result.success) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setEmail('tecnico@cachoeira.com'); setSenha('tecnico123'); }}
+                  onClick={() => { setEmail('tecnico@cachoeira.com'); setSenha('admin123'); }}
                   className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
                 >
                   <div className="flex items-center justify-between">
@@ -109,7 +109,7 @@ if (result.success) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setEmail('visualizador@cachoeira.com'); setSenha('visualizador123'); }}
+                  onClick={() => { setEmail('edreuel@cachoeira.com'); setSenha('admin123'); }}
                   className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
                 >
                   <div className="flex items-center justify-between">
@@ -122,7 +122,7 @@ if (result.success) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setEmail('francisco@cachoeira.com'); setSenha('morador123'); }}
+                  onClick={() => { setEmail('adneiwesley@cachoeira.com'); setSenha('admin123'); }}
                   className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
                 >
                   <div className="flex items-center justify-between">
