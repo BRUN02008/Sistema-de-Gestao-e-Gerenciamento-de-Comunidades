@@ -40,7 +40,7 @@ from .serializers import (
     PerfilUsuarioSerializer,
     RelatorioAtividadeSerializer
 )
-
+from django.contrib.auth import authenticate, get_user_model
 class FamiliaViewSet(viewsets.ModelViewSet):
     serializer_class = FamiliaSerializer
     permission_classes = [IsAdminTecnicoOrReadOnly]
@@ -151,8 +151,18 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        User = get_user_model()
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Email ou senha incorretos."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         user = authenticate(
-            username=email,
+            username=user.username,
             password=senha
         )
 
