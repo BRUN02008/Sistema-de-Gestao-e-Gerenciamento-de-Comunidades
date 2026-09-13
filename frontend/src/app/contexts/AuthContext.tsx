@@ -60,7 +60,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = 'https://gestao-comunidades-api.onrender.com/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
