@@ -44,13 +44,13 @@ interface AuthContextType {
   logout: () => void;
 
   addUser: (data: {
-    email: string;
-    senha: string;
-    user: Omit<User, 'id'>;
-  }) => {
-    success: boolean;
-    error?: string;
-  };
+  email: string;
+  senha: string;
+  user: Omit<User, 'id'>;
+}) => Promise<{
+  success: boolean;
+  error?: string;
+}>;
 
   removeUser: (id: string) => {
     success: boolean;
@@ -94,47 +94,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 });
 
-const addUser = (data: {
+const addUser = async (data: {
   email: string;
   senha: string;
   user: Omit<User, 'id'>;
-}) => {
-  const emailExiste = users.some(
-    (u) => u.email.toLowerCase() === data.email.toLowerCase()
-  );
+}): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
 
-  if (emailExiste) {
-    return {
-      success: false,
-      error: 'Este e-mail já está cadastrado.'
-    };
-  }
+  try {
 
-  const novoUsuario: User = {
-    ...data.user,
-    id: crypto.randomUUID(),
-    email: data.email,
-  };
+    const token = localStorage.getItem('sisgest_access');
 
-  const novoAccount: UserAccount = {
-    email: data.email,
-    user: novoUsuario,
-  };
+    if (!token) {
+      return {
+        success: false,
+        error: 'Usuário não autenticado.'
+      };
+    }
 
-  setUsers((prev) => {
-    const next = [...prev, novoAccount];
-
-    localStorage.setItem(
-      'sisgest_users',
-      JSON.stringify(next)
+    const response = await fetch(
+      `${API_URL}/usuarios/`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nome: data.user.nome,
+          email: data.email,
+          senha: data.senha,
+          role: data.user.role,
+          morador: data.user.moradorId
+            ? Number(data.user.moradorId)
+            : null,
+          cpf: data.user.cpf || '',
+          familia: data.user.familia || '',
+        }),
+      }
     );
 
-    return next;
-  });
+    const responseData = await response.json();
 
-  return {
-    success: true
-  };
+    console.log('RESPOSTA CRIAR USUÁRIO:', responseData);
+
+    if (!response.ok) {
+
+      let mensagem = 'Não foi possível criar o usuário.';
+
+      if (responseData.email) {
+        mensagem = responseData.email[0];
+      } else if (responseData.senha) {
+        mensagem = responseData.senha[0];
+      } else if (responseData.detail) {
+        mensagem = responseData.detail;
+      }
+
+      return {
+        success: false,
+        error: mensagem
+      };
+    }
+
+    return {
+      success: true
+    };
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao criar usuário:',
+      error
+    );
+
+    return {
+      success: false,
+      error: 'Não foi possível conectar ao servidor.'
+    };
+  }
 };
 
 

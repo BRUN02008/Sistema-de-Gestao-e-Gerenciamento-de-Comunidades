@@ -65,7 +65,7 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -73,7 +73,7 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
       return;
     }
 
-    const result = addUser({
+    const result = await addUser({
       email: form.email,
       senha: form.senha,
       user: {

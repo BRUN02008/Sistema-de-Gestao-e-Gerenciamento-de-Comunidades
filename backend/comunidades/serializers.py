@@ -310,8 +310,8 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
     )
 
     nome = serializers.CharField(
-        source="user.get_full_name",
-        read_only=True
+        write_only=True,
+        required=False
     )
 
     email = serializers.EmailField(
@@ -319,8 +319,7 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
     )
 
     senha = serializers.CharField(
-        write_only=True,
-        required=False
+        write_only=True
     )
 
     class Meta:
@@ -345,12 +344,23 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         email = validated_data.pop("email")
         senha = validated_data.pop("senha")
+        nome = validated_data.pop("nome", "")
 
         user = User.objects.create_user(
             username=email,
             email=email,
             password=senha
         )
+
+        if nome:
+            partes = nome.strip().split(" ", 1)
+
+            user.first_name = partes[0]
+
+            if len(partes) > 1:
+                user.last_name = partes[1]
+
+            user.save()
 
         perfil = PerfilUsuario.objects.create(
             user=user,
