@@ -1,4 +1,4 @@
-const API_URL = '/api';
+const API_URL = 'https://gestao-comunidades-api.onrender.com/api';
 
 async function renovarToken(): Promise<string | null> {
   const refresh = localStorage.getItem('sisgest_refresh');
