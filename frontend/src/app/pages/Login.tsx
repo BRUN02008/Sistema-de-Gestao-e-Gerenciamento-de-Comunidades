@@ -106,33 +106,7 @@ if (result.success) {
                     </div>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/20 text-secondary">Técnico</span>
                   </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('edreuel@cachoeira.com'); setSenha('admin123'); }}
-                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-foreground">Sebastiana Costa</p>
-                      <p className="text-xs text-muted-foreground">Portal do morador — Família Costa</p>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">Morador</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('adneiwesley@cachoeira.com'); setSenha('admin123'); }}
-                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-foreground">Francisco Ribeiro da Silva</p>
-                      <p className="text-xs text-muted-foreground">Portal do morador — Família Silva</p>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">Morador</span>
-                  </div>
-                </button>
+                </button>  
               </div>
             </div>
           </CardContent>
