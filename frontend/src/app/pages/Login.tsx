@@ -106,6 +106,19 @@ if (result.success) {
                     </div>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/20 text-secondary">Técnico</span>
                   </div>
+                </button> 
+                <button
+                  type="button"
+                  onClick={() => { setEmail('brunoguilherme@cachoeira.com'); setSenha('bruno123'); }}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Morador</p>
+                      <p className="text-xs text-muted-foreground">Gestão de moradores e dados</p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/20 text-secondary">Morador</span>
+                  </div>
                 </button>  
               </div>
             </div>
