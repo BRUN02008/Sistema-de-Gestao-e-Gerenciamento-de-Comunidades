@@ -98,8 +98,8 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
     }
   };
 
-  const handleRemove = (id: string) => {
-    const result = removeUser(id);
+  const handleRemove = async (id: string) => {
+    const result = await removeUser(id);
     if (result.success) {
       toast.success('Usuário removido');
       setConfirmDelete(null);
