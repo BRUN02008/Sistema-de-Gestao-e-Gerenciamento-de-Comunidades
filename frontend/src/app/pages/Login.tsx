@@ -83,7 +83,7 @@ if (result.success) {
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => { setEmail('admin@cachoeira.com'); setSenha('admin123'); }}
+                  onClick={() => { setEmail('admin@cachoeira.com'); setSenha('brun0m410'); }}
                   className="w-full text-left px-3 py-2 rounded-md hover:bg-background transition-colors"
                 >
                   <div className="flex items-center justify-between">
