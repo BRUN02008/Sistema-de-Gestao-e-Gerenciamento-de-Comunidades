@@ -303,28 +303,13 @@ class OficioSerializer(serializers.ModelSerializer):
         
         
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
-
-    id = serializers.CharField(
-        source="user.id",
-        read_only=True
-    )
-
-    nome = serializers.CharField(
-        write_only=True,
-        required=False
-    )
-
-    email = serializers.EmailField(
-        write_only=True
-    )
-
-    senha = serializers.CharField(
-        write_only=True
-    )
+    id = serializers.CharField(source="user.id", read_only=True)
+    nome = serializers.CharField(write_only=True, required=False)
+    email = serializers.EmailField(write_only=True)
+    senha = serializers.CharField(write_only=True)
 
     class Meta:
         model = PerfilUsuario
-
         fields = [
             "id",
             "nome",
@@ -335,11 +320,7 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
             "cpf",
             "familia",
         ]
-
-        read_only_fields = [
-            "id",
-            "nome",
-        ]
+        read_only_fields = ["id"]
 
     def create(self, validated_data):
         email = validated_data.pop("email")
@@ -368,6 +349,15 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
         )
 
         return perfil
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["nome"] = instance.user.get_full_name()
+
+        data["email"] = instance.user.email
+
+        return data
     
     
 class DespesaSerializer(serializers.ModelSerializer):
