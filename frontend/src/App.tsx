@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'sonner';
-import { AuthProvider, useAuth, type UserRole } from './app/contexts/AuthContext';
-import { DataProvider } from './app/contexts/DataContext';
+import { AuthProvider, useAuth, type UserRole } from './app/components/contexts/AuthContext';
+import { DataProvider } from './app/components/contexts/DataContext';
 import { Layout } from './app/components/Layout';
 import { Login } from './app/pages/Login';
 import { Dashboard } from './app/pages/Dashboard';

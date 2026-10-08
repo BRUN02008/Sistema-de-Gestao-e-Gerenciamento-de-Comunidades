@@ -20,9 +20,9 @@ import {
   mockAtividades,
   mockDocumentos,
   mockDependentes,
-} from '../data/mockData';
+} from '../../data/mockData';
 
-import { api } from '../../services/api';
+import { api } from '../../../services/api';
 
 function load<T>(key: string, fallback: T): T {
   try {
