@@ -6,6 +6,7 @@ import { Layout } from './app/components/Layout';
 import { Login } from './app/pages/Login';
 import { Dashboard } from './app/pages/Dashboard';
 import { Moradores } from './app/pages/Moradores';
+import { Familias } from './app/pages/Familias';
 import { MoradorForm } from './app/pages/MoradorForm';
 import { MoradorDetalhes } from './app/pages/MoradorDetalhes';
 import { Documentos } from './app/pages/Documentos';
@@ -56,6 +57,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
             <Moradores />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/familias"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
+            <Familias />
           </ProtectedRoute>
         }
       />

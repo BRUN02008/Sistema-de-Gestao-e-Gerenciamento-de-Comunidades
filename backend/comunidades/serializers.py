@@ -1,3 +1,5 @@
+import unicodedata
+
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
@@ -39,6 +41,47 @@ class FamiliaSerializer(serializers.ModelSerializer):
             "endereco",
             "total_membros",
         ]
+
+    def validate(self, attrs):
+        instance = self.instance
+        nome = (attrs.get("nome", instance.nome if instance else "") or "").strip()
+        responsavel = (
+            attrs.get("responsavel", instance.responsavel if instance else "") or ""
+        ).strip()
+
+        if not nome:
+            raise serializers.ValidationError({"nome": "Informe o nome da família."})
+
+        def normalizar(valor):
+            sem_acentos = "".join(
+                caractere
+                for caractere in unicodedata.normalize("NFKD", valor)
+                if not unicodedata.combining(caractere)
+            )
+            return " ".join(sem_acentos.casefold().split())
+
+        identidade_alterada = instance is None or (
+            normalizar(nome) != normalizar(instance.nome)
+            or normalizar(responsavel) != normalizar(instance.responsavel)
+        )
+        if identidade_alterada:
+            duplicadas = Familia.objects.select_for_update().only(
+                "id", "nome", "responsavel"
+            )
+            if instance:
+                duplicadas = duplicadas.exclude(pk=instance.pk)
+            if any(
+                normalizar(familia.nome) == normalizar(nome)
+                and normalizar(familia.responsavel) == normalizar(responsavel)
+                for familia in duplicadas
+            ):
+                raise serializers.ValidationError({
+                    "nome": "Já existe uma família com este nome e responsável."
+                })
+
+        attrs["nome"] = nome
+        attrs["responsavel"] = responsavel
+        return attrs
 
 
 class MoradorSerializer(serializers.ModelSerializer):

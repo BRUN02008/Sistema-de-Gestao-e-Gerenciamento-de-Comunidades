@@ -37,6 +37,47 @@ const emptyOficio = {
   status: 'rascunho' as Oficio['status'], observacoes: ''
 };
 
+function escaparHtml(valor: string): string {
+  const entidades: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  };
+  return valor.replace(/[&<>"']/g, (caractere) => entidades[caractere] ?? caractere);
+}
+
+function baixarCsv(nome: string, colunas: string[], linhas: string[][]) {
+  const csv = [colunas, ...linhas]
+    .map((linha) => linha.map((valor) => `"${String(valor ?? '').replace(/"/g, '""')}"`).join(';'))
+    .join('\r\n');
+  const arquivo = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(arquivo);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${nome}.csv`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function gerarPdf(titulo: string, colunas: string[], linhas: string[][]) {
+  const janela = window.open('', '_blank');
+  if (!janela) {
+    toast.error('Permita a abertura de janelas para gerar o PDF.');
+    return;
+  }
+
+  const dataGeracao = new Date().toLocaleString('pt-BR');
+  const cabecalho = colunas.map((coluna) => `<th>${escaparHtml(coluna)}</th>`).join('');
+  const corpo = linhas.map((linha) => `<tr>${linha.map((valor) => `<td>${escaparHtml(valor)}</td>`).join('')}</tr>`).join('');
+  janela.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escaparHtml(titulo)}</title><style>
+    body{font-family:Arial,sans-serif;color:#222;padding:32px}h1{font-size:22px;margin:0 0 8px}p{color:#555;margin:0 0 24px}
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}th{background:#f0f0f0}
+    @media print{body{padding:0}}
+  </style></head><body><h1>${escaparHtml(titulo)}</h1><p>Gerado em ${escaparHtml(dataGeracao)} · ${linhas.length} registro(s)</p>
+    <table><thead><tr>${cabecalho}</tr></thead><tbody>${corpo}</tbody></table></body></html>`);
+  janela.document.close();
+  janela.focus();
+  janela.setTimeout(() => janela.print(), 250);
+}
+
 type Aba = 'moradores' | 'familias' | 'atividades' | 'relatorios_atividade' | 'oficios';
 
 export function Relatorios() {
@@ -73,20 +114,71 @@ export function Relatorios() {
     ocupacao: oc, total: mockMoradores.filter(m => m.ocupacao === oc).length
   })).filter(x => x.total > 0);
 
-  const atividadesPorMes = [
-  { mes: 'Jan', total: eventos.filter(e => e.data.startsWith('2026-01')).length },
-  { mes: 'Fev', total: eventos.filter(e => e.data.startsWith('2026-02')).length },
-  { mes: 'Mar', total: eventos.filter(e => e.data.startsWith('2026-03')).length },
-  { mes: 'Abr', total: eventos.filter(e => e.data.startsWith('2026-04')).length },
-  { mes: 'Mai', total: eventos.filter(e => e.data.startsWith('2026-05')).length },
-  { mes: 'Jun', total: eventos.filter(e => e.data.startsWith('2026-06')).length },
-  { mes: 'Jul', total: eventos.filter(e => e.data.startsWith('2026-07')).length },
-  { mes: 'Ago', total: eventos.filter(e => e.data.startsWith('2026-08')).length },
-  { mes: 'Set', total: eventos.filter(e => e.data.startsWith('2026-09')).length },
-  { mes: 'Out', total: eventos.filter(e => e.data.startsWith('2026-10')).length },
-  { mes: 'Nov', total: eventos.filter(e => e.data.startsWith('2026-11')).length },
-  { mes: 'Dez', total: eventos.filter(e => e.data.startsWith('2026-12')).length },
-];
+  const familiasPorMembros = Array.from(
+    mockFamilias.reduce((grupos, familia) => {
+      grupos.set(familia.total_membros, (grupos.get(familia.total_membros) ?? 0) + 1);
+      return grupos;
+    }, new Map<number, number>()),
+    ([membros, total]) => ({ membros: `${membros} membros`, total })
+  ).sort((a, b) => Number.parseInt(a.membros, 10) - Number.parseInt(b.membros, 10));
+
+  const atividadesPorMes = Array.from(
+    eventos.reduce((grupos, evento) => {
+      const data = /^(\d{4})-(\d{2})/.exec(evento.data);
+      if (!data) return grupos;
+      const mes = Number(data[2]);
+      if (mes < 1 || mes > 12) return grupos;
+      const chave = `${data[1]}-${data[2]}`;
+      grupos.set(chave, (grupos.get(chave) ?? 0) + 1);
+      return grupos;
+    }, new Map<string, number>()),
+    ([chave, total]) => {
+      const [ano, mes] = chave.split('-');
+      const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(Number(ano), Number(mes) - 1, 1)));
+      return { chave, mes: `${nomeMes} ${ano}`, total };
+    }
+  ).sort((a, b) => a.chave.localeCompare(b.chave));
+
+  const oficiosPorStatus = Array.from(
+    oficios.reduce((grupos, oficio) => {
+      grupos.set(oficio.status, (grupos.get(oficio.status) ?? 0) + 1);
+      return grupos;
+    }, new Map<string, number>()),
+    ([status, total]) => ({ status: OFICIO_STATUS_LABELS[status] ?? status, total })
+  );
+
+  const resumoSistema = [
+    { categoria: 'Moradores', total: mockMoradores.length },
+    { categoria: 'Famílias', total: mockFamilias.length },
+    { categoria: 'Atividades', total: eventos.length },
+    { categoria: 'Ofícios', total: oficios.length },
+  ];
+
+  const dadosExportacao = (): { titulo: string; colunas: string[]; linhas: string[][] } => {
+    switch (tipoRelatorio) {
+      case 'moradores':
+        return { titulo: 'Relatório de Moradores', colunas: ['Nome', 'CPF', 'Família', 'Ocupação', 'Escolaridade', 'Data de cadastro', 'Status'], linhas: mockMoradores.map(m => [m.nome, m.cpf, m.familia, m.ocupacao, m.escolaridade, m.dataCadastro, m.status]) };
+      case 'familias':
+        return { titulo: 'Relatório de Famílias', colunas: ['Família', 'Responsável', 'Membros', 'Endereço'], linhas: mockFamilias.map(f => [f.nome, f.responsavel, String(f.total_membros), f.endereco]) };
+      case 'atividades':
+        return { titulo: 'Relatório de Atividades', colunas: ['Título', 'Tipo', 'Data', 'Hora', 'Local', 'Responsável', 'Status'], linhas: eventos.map(e => [e.titulo, e.tipo, e.data, e.hora, e.local, e.responsavel, e.status ?? '']) };
+      case 'oficios':
+        return { titulo: 'Relatório de Ofícios', colunas: ['Número', 'Título', 'Destinatário', 'Assunto', 'Data de emissão', 'Data do protocolo', 'Número do protocolo', 'Status', 'Observações'], linhas: oficios.map(o => [o.numero, o.titulo, o.destinatario, o.assunto, o.dataEmissao, o.dataProtocolo ?? '', o.numeroProtocolo ?? '', OFICIO_STATUS_LABELS[o.status] ?? o.status, o.observacoes ?? '']) };
+      case 'relatorios_atividade':
+        return { titulo: 'Visão Geral do Sistema', colunas: ['Categoria', 'Quantidade de registros'], linhas: resumoSistema.map(item => [item.categoria, String(item.total)]) };
+    }
+  };
+
+  const exportarPdf = () => {
+    const dados = dadosExportacao();
+    gerarPdf(dados.titulo, dados.colunas, dados.linhas);
+  };
+
+  const exportarExcel = () => {
+    const dados = dadosExportacao();
+    baixarCsv(dados.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '-'), dados.colunas, dados.linhas);
+    toast.success('Arquivo compatível com Excel exportado.');
+  };
 
   // Imagens (base64)
   const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,12 +312,10 @@ export function Relatorios() {
                 {tab.label}
               </button>
             ))}
-            {(['moradores', 'familias', 'atividades'] as Aba[]).includes(tipoRelatorio) && (
-              <div className="ml-auto flex gap-2">
-                <Button size="sm" onClick={() => toast.success('Relatório exportado em PDF!')}><Download size={16} /> PDF</Button>
-                <Button size="sm" variant="outline" onClick={() => toast.success('Relatório exportado em Excel!')}><Download size={16} /> Excel</Button>
-              </div>
-            )}
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button size="sm" onClick={exportarPdf}><Download size={16} /> Gerar PDF</Button>
+              <Button size="sm" variant="outline" onClick={exportarExcel}><Download size={16} /> Exportar Excel</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -323,6 +413,18 @@ export function Relatorios() {
             </CardContent></Card>
           </div>
           <Card>
+            <CardHeader><CardTitle>Famílias por quantidade de membros</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={familiasPorMembros}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e8e5dc" />
+                  <XAxis dataKey="membros" /><YAxis allowDecimals={false} /><Tooltip />
+                  <Bar dataKey="total" name="Famílias" fill="#3b7fa4" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          <Card>
             <CardHeader><CardTitle>Lista de Famílias</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -390,7 +492,20 @@ export function Relatorios() {
 
       {/* ── Relatórios de Atividade ── */}
       {tipoRelatorio === 'relatorios_atividade' && (
-        relatorios.length === 0 ? (
+        <>
+        <Card>
+          <CardHeader><CardTitle>Visão geral dos registros do sistema</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={resumoSistema}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e8e5dc" />
+                <XAxis dataKey="categoria" /><YAxis allowDecimals={false} /><Tooltip />
+                <Bar dataKey="total" name="Registros" fill="#5c8a3e" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        {relatorios.length === 0 ? (
           <Card><CardContent className="p-16 text-center">
             <FileText className="mx-auto mb-4 text-muted-foreground" size={48} />
             <p className="text-muted-foreground mb-2">Nenhum relatório registrado ainda</p>
@@ -451,12 +566,26 @@ export function Relatorios() {
               </Card>
             ))}
           </div>
-        )
+        )}
+        </>
       )}
 
       {/* ── Ofícios ── */}
       {tipoRelatorio === 'oficios' && (
-        oficios.length === 0 ? (
+        <>
+        <Card>
+          <CardHeader><CardTitle>Ofícios por status</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={oficiosPorStatus}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e8e5dc" />
+                <XAxis dataKey="status" /><YAxis allowDecimals={false} /><Tooltip />
+                <Bar dataKey="total" name="Ofícios" fill="#3b7fa4" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        {oficios.length === 0 ? (
           <Card><CardContent className="p-16 text-center">
             <Send className="mx-auto mb-4 text-muted-foreground" size={48} />
             <p className="text-muted-foreground mb-2">Nenhum ofício registrado ainda</p>
@@ -506,7 +635,8 @@ export function Relatorios() {
               </Card>
             ))}
           </div>
-        )
+        )}
+        </>
       )}
 
       {/* Modal Relatório */}

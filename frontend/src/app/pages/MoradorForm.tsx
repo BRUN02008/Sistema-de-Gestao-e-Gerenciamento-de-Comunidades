@@ -175,12 +175,25 @@ navigate('/moradores');
     return;
   }
 
-  const nova = await addFamilia({
-    nome: novaFamiliaForm.nome.trim(),
-    responsavel: novaFamiliaForm.responsavel || formData.nome || 'A definir',
-    endereco: novaFamiliaForm.endereco || '',
-    total_membros: 1,
-  });
+  let nova: Familia;
+  try {
+    nova = await addFamilia({
+      nome: novaFamiliaForm.nome.trim(),
+      responsavel: novaFamiliaForm.responsavel || formData.nome || 'A definir',
+      endereco: novaFamiliaForm.endereco || '',
+      total_membros: 1,
+    });
+  } catch (error) {
+    const mensagem = error instanceof Error ? error.message : 'Não foi possível cadastrar a família.';
+    try {
+      const detalhes = JSON.parse(mensagem) as Record<string, unknown>;
+      const erroNome = detalhes.nome;
+      setNovaFamiliaErr(Array.isArray(erroNome) ? String(erroNome[0]) : String(erroNome ?? mensagem));
+    } catch {
+      setNovaFamiliaErr(mensagem);
+    }
+    return;
+  }
 
   handleChange('familia', nova.id);
 
@@ -236,7 +249,13 @@ navigate('/moradores');
     );
   } catch (error) {
   console.error('Erro ao excluir família:', error);
-  toast.error('Erro ao excluir família');
+  const mensagem = error instanceof Error ? error.message : 'Erro ao excluir família.';
+  try {
+    const detalhes = JSON.parse(mensagem) as Record<string, unknown>;
+    toast.error(String(detalhes.detail ?? detalhes.nome ?? mensagem));
+  } catch {
+    toast.error(mensagem);
+  }
 }
 };
 

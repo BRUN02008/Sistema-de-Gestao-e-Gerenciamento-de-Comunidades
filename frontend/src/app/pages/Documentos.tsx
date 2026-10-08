@@ -1,6 +1,14 @@
 import { useState, useRef } from 'react';
 import { Card, CardContent } from '../components/Card';
 import { Input } from '../components/Input';
+import { Button } from '../components/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { type Documento } from '../data/mockData';
 import { useData } from '../components/contexts/DataContext';
 import { Plus, Search, Download, Eye, FileText, File, Lock, X, Trash2, PenLine, CheckCircle2, RotateCcw } from 'lucide-react';
@@ -10,6 +18,27 @@ import { useAuth } from '../components/contexts/AuthContext';
 const TIPO_LABELS: Record<string, string> = {
   certidao: 'Certidão', declaracao: 'Declaração', relatorio: 'Relatório', outro: 'Outro'
 };
+
+const MESES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+function extrairAnoMes(data: string): { ano: number; mes: number } | null {
+  if (typeof data !== 'string') return null;
+
+  const correspondencia = /^(\d{4})-(\d{2})-(\d{2})(?:$|T| )/.exec(data);
+  if (!correspondencia) return null;
+
+  const ano = Number(correspondencia[1]);
+  const mes = Number(correspondencia[2]);
+  const dia = Number(correspondencia[3]);
+  const bissexto = ano % 4 === 0 && (ano % 100 !== 0 || ano % 400 === 0);
+  const diasNoMes = [31, bissexto ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  if (mes < 1 || mes > 12 || dia < 1 || dia > diasNoMes[mes - 1]) return null;
+  return { ano, mes };
+}
 
 const emptyForm = {
   titulo: '',
@@ -33,6 +62,8 @@ export function Documentos() {
   const isMorador = user?.role === 'visualizador';
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
+  const [anoSelecionado, setAnoSelecionado] = useState('todos');
+  const [mesSelecionado, setMesSelecionado] = useState('todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -131,11 +162,30 @@ export function Documentos() {
     ? documentos.filter(d => d.moradorId === user?.moradorId)
     : documentos;
 
-  const documentosFiltrados = documentosBase.filter(doc =>
-    doc.titulo.toLowerCase().includes(busca.toLowerCase()) ||
-    doc.morador.toLowerCase().includes(busca.toLowerCase()) ||
-    doc.tipo.includes(busca.toLowerCase())
-  );
+  const anosDisponiveis = Array.from(new Set(
+    documentosBase
+      .map((documento) => extrairAnoMes(documento.dataEmissao)?.ano)
+      .filter((ano): ano is number => ano !== undefined)
+  )).sort((a, b) => b - a);
+
+  const documentosFiltrados = documentosBase.filter(doc => {
+    const textoBusca = busca.toLowerCase();
+    const correspondeBusca =
+      doc.titulo.toLowerCase().includes(textoBusca) ||
+      doc.morador.toLowerCase().includes(textoBusca) ||
+      doc.tipo.includes(textoBusca);
+    const dataEmissao = extrairAnoMes(doc.dataEmissao);
+    const correspondeAno = anoSelecionado === 'todos' || dataEmissao?.ano === Number(anoSelecionado);
+    const correspondeMes = mesSelecionado === 'todos' || dataEmissao?.mes === Number(mesSelecionado);
+
+    return correspondeBusca && correspondeAno && correspondeMes;
+  });
+
+  const limparFiltros = () => {
+    setBusca('');
+    setAnoSelecionado('todos');
+    setMesSelecionado('todos');
+  };
 
   const getIcon = (tipo: string) => {
     switch (tipo) {
@@ -368,6 +418,39 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
               onChange={(e) => setBusca(e.target.value)}
               fullWidth
             />
+          </div>
+          <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+            <div className="w-full sm:w-48">
+              <label className="mb-1.5 block text-sm text-foreground">Ano</label>
+              <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
+                <SelectTrigger aria-label="Filtrar por ano">
+                  <SelectValue placeholder="Todos os anos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os anos</SelectItem>
+                  {anosDisponiveis.map((ano) => (
+                    <SelectItem key={ano} value={String(ano)}>{ano}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-48">
+              <label className="mb-1.5 block text-sm text-foreground">Mês</label>
+              <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+                <SelectTrigger aria-label="Filtrar por mês">
+                  <SelectValue placeholder="Todos os meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os meses</SelectItem>
+                  {MESES.map((mes, index) => (
+                    <SelectItem key={mes} value={String(index + 1)}>{mes}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={limparFiltros}>
+              Limpar filtros
+            </Button>
           </div>
         </CardContent>
       </Card>

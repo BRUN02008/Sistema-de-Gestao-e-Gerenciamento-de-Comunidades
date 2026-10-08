@@ -18,7 +18,6 @@ import {
   type Oficio,
 
   mockAtividades,
-  mockDocumentos,
   mockDependentes,
 } from '../../data/mockData';
 
@@ -42,6 +41,29 @@ function save<T>(key: string, value: T) {
   } catch (error) {
     console.error('Erro ao salvar no localStorage:', error);
   }
+}
+
+function normalizarIdentidadeFamilia(valor: string): string {
+  return valor
+    .trim()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('pt-BR');
+}
+
+function familiaDuplicada(
+  familiasAtuais: Familia[],
+  familia: Pick<Familia, 'nome' | 'responsavel'>,
+  ignorarId?: string
+): boolean {
+  const nome = normalizarIdentidadeFamilia(familia.nome);
+  const responsavel = normalizarIdentidadeFamilia(familia.responsavel);
+  return familiasAtuais.some((existente) =>
+    String(existente.id) !== String(ignorarId ?? '') &&
+    normalizarIdentidadeFamilia(existente.nome) === nome &&
+    normalizarIdentidadeFamilia(existente.responsavel) === responsavel
+  );
 }
 
 interface DataContextType {
@@ -288,7 +310,7 @@ useEffect(() => {
 
   const [documentos, setDocumentos] =
     useState<Documento[]>(() =>
-      load('documentos', mockDocumentos)
+      load('documentos', [])
     );
 
   const [dependentes] =
@@ -547,6 +569,9 @@ useEffect(() => {
   const addFamilia = useCallback(
   async (f: Omit<Familia, 'id'>): Promise<Familia> => {
     try {
+      if (familiaDuplicada(familias, f)) {
+        throw new Error('Já existe uma família com este nome e responsável.');
+      }
       const data = (await api.post('/familias/', {
         nome: f.nome,
         responsavel: f.responsavel,
@@ -572,12 +597,19 @@ useEffect(() => {
       throw error;
     }
   },
-  []
+  [familias]
 );
 
   const updateFamilia = useCallback(
   async (f: Familia): Promise<void> => {
     try {
+      const atual = familias.find((familia) => String(familia.id) === String(f.id));
+      const identidadeAlterada = !atual ||
+        normalizarIdentidadeFamilia(atual.nome) !== normalizarIdentidadeFamilia(f.nome) ||
+        normalizarIdentidadeFamilia(atual.responsavel) !== normalizarIdentidadeFamilia(f.responsavel);
+      if (identidadeAlterada && familiaDuplicada(familias, f, f.id)) {
+        throw new Error('Já existe uma família com este nome e responsável.');
+      }
       const data = (await api.put(
         `/familias/${f.id}/`,
         {
@@ -614,7 +646,7 @@ useEffect(() => {
       throw error;
     }
   },
-  []
+  [familias]
 );
 
   const deleteFamilia = useCallback(

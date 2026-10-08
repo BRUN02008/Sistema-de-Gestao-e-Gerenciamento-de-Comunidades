@@ -119,6 +119,7 @@ export function Sidebar({ onLogout, open = true, onClose }: SidebarProps) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavItem to="/dashboard" icon={<Home size={20} />} label="Início" onClick={handleNavClick} />
           {!isMorador && <NavItem to="/moradores" icon={<Users size={20} />} label="Moradores" onClick={handleNavClick} />}
+          {!isMorador && <NavItem to="/familias" icon={<Home size={20} />} label="Famílias" onClick={handleNavClick} />}
           <NavItem
             to="/documentos"
             icon={<FileText size={20} />}

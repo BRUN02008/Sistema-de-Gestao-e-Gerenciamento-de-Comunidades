@@ -1,4 +1,6 @@
 from rest_framework import viewsets
+from django.db import transaction
+from django.db.models import ProtectedError
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -62,6 +64,39 @@ class FamiliaViewSet(viewsets.ModelViewSet):
             return Familia.objects.none()
 
         return Familia.objects.none()
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        familia = self.get_object()
+        if familia.moradores.exists():
+            return Response(
+                {"detail": "Esta família possui moradores vinculados. Transfira os moradores para outra família antes de excluí-la."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if familia.mensalidades.exists():
+            return Response(
+                {"detail": "Esta família possui mensalidades vinculadas. Regularize ou transfira esses registros antes de excluí-la."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Esta família possui outros registros vinculados e não pode ser excluída."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class MoradorViewSet(viewsets.ModelViewSet):
