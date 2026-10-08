@@ -31,7 +31,7 @@ class Morador(models.Model):
     nome = models.CharField(max_length=150)
     data_nascimento = models.DateField()
     cpf = models.CharField(max_length=14, unique=True)
-    rg = models.CharField(max_length=30, blank=True)
+    rg = models.CharField(max_length=30, blank=True)    
 
     familia = models.ForeignKey(
         Familia,

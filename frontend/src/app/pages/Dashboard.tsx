@@ -1,11 +1,9 @@
 import { Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
-import { Users, Home as HomeIcon, FileText, TrendingUp, Wallet, ArrowRight, CheckCircle, AlertCircle, Clock, User, Calendar } from 'lucide-react';
+import { Users, Home as HomeIcon, FileText, TrendingUp, ArrowRight, Clock, User, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-
-const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 function StatCard({ label, value, icon, color }: { label: string; value: number | string; icon: React.ReactNode; color: string }) {
   return (
@@ -24,10 +22,7 @@ function StatCard({ label, value, icon, color }: { label: string; value: number 
 }
 
 function DashboardAdmin() {
-  const { moradores, familias, atividades, documentos, mensalidades } = useData();
-
-  const totalMensalidadesPendentes = mensalidades.filter(m => m.status === 'pendente' || m.status === 'atrasado').length;
-  const valorPendente = mensalidades.filter(m => m.status !== 'pago').reduce((a, m) => a + m.valor, 0);
+  const { moradores, familias, atividades, documentos } = useData();
 
   const atividadesPorStatus = [
     { name: 'Concluídas', value: atividades.filter(a => a.status === 'concluida').length, color: '#5c8a3e' },
@@ -57,40 +52,6 @@ function DashboardAdmin() {
         <StatCard label="Documentos" value={documentos.length} icon={<FileText size={20} className="text-accent" />} color="bg-accent/10" />
         <StatCard label="Atividades" value={atividades.filter(a => a.status !== 'concluida').length} icon={<TrendingUp size={20} style={{ color: '#d4a373' }} />} color="bg-amber-100/60" />
       </div>
-
-      {/* Financeiro */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Situação Financeira</CardTitle>
-            <Link to="/financas" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
-              Ver detalhes <ArrowRight size={14} />
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-primary/5 rounded-xl border border-primary/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Wallet size={16} className="text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground">Mensalidades</p>
-              </div>
-              <p className="text-xl text-foreground">{totalMensalidadesPendentes}</p>
-              <p className="text-xs text-muted-foreground">Pendentes</p>
-              <p className="text-xs text-destructive mt-1">{fmt(valorPendente)}</p>
-            </div>
-            <div className="p-3 bg-accent/5 rounded-xl border border-accent/20">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={16} className="text-accent shrink-0" />
-                <p className="text-xs text-muted-foreground">Pagamentos</p>
-              </div>
-              <p className="text-xl text-foreground">{mensalidades.filter(m => m.status === 'pago').length}</p>
-              <p className="text-xs text-muted-foreground">Recebidos</p>
-              <Link to="/financas/mensalidades" className="text-xs text-accent mt-1 inline-block">Gerenciar →</Link>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Charts — stacked on mobile, side by side on large */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -166,11 +127,7 @@ function DashboardAdmin() {
 
 function DashboardMorador() {
   const { user } = useAuth();
-  const { mensalidades, documentos, familias, investimentos, eventos } = useData();
-
-  const minhasMensalidades = mensalidades.filter(m => m.moradorId === user?.moradorId);
-  const pagas = minhasMensalidades.filter(m => m.status === 'pago');
-  const pendentes = minhasMensalidades.filter(m => m.status === 'pendente' || m.status === 'atrasado');
+  const { documentos, familias, eventos } = useData();
   const meusDocumentos = documentos.filter(d => d.moradorId === user?.moradorId);
   const familia = familias.find(f => f.nome === user?.familia);
 
@@ -180,14 +137,8 @@ function DashboardMorador() {
     .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
     .slice(0, 3);
 
-  const getMesLabel = (mesRef: string) => {
-    const [ano, mes] = mesRef.split('-');
-    return new Date(parseInt(ano), parseInt(mes) - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  };
-
   return (
     <div className="space-y-5">
-      {/* Welcome banner */}
       <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-4 border border-primary/20">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
@@ -196,64 +147,18 @@ function DashboardMorador() {
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Portal do Morador</p>
             <h2 className="text-foreground text-base truncate">{user?.nome}</h2>
-            {familia && (
-              <p className="text-xs text-muted-foreground truncate">{familia.nome} · {familia.totalMembros} membros</p>
-            )}
+            {familia && <p className="text-xs text-muted-foreground truncate">{familia.nome} · {familia.totalMembros} membros</p>}
           </div>
         </div>
       </div>
 
-      {/* Stats 2x2 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard label="Mensalidades Pagas" value={pagas.length} icon={<CheckCircle size={20} className="text-primary" />} color="bg-primary/10" />
-        <StatCard label="Pendentes" value={pendentes.length} icon={<AlertCircle size={20} className="text-destructive" />} color="bg-destructive/10" />
-        <div className="col-span-2 md:col-span-1">
-          <StatCard label="Meus Documentos" value={meusDocumentos.length} icon={<FileText size={20} className="text-accent" />} color="bg-accent/10" />
-        </div>
-      </div>
+      <StatCard label="Meus Documentos" value={meusDocumentos.length} icon={<FileText size={20} className="text-accent" />} color="bg-accent/10" />
 
-      {/* Mensalidades */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Minhas Mensalidades</CardTitle>
-            <Link to="/financas/minha-conta" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
-              Ver tudo <ArrowRight size={14} />
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-2">
-            {minhasMensalidades.sort((a, b) => b.mesReferencia.localeCompare(a.mesReferencia)).slice(0, 5).map((m) => (
-              <div key={m.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-foreground capitalize truncate">{getMesLabel(m.mesReferencia)}</p>
-                  {m.dataPagamento && (
-                    <p className="text-xs text-muted-foreground">Pago em {new Date(m.dataPagamento).toLocaleDateString('pt-BR')}</p>
-                  )}
-                </div>
-                <span className={`shrink-0 ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  m.status === 'pago' ? 'bg-primary/20 text-primary' :
-                  m.status === 'atrasado' ? 'bg-destructive/20 text-destructive' : 'bg-accent/20 text-accent'}`}>
-                  {m.status === 'pago' ? 'Pago' : m.status === 'atrasado' ? 'Atrasado' : 'Pendente'}
-                </span>
-              </div>
-            ))}
-            {minhasMensalidades.length === 0 && (
-              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma mensalidade encontrada</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Próximos Eventos */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Próximos Eventos</CardTitle>
-            <Link to="/agenda" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
-              Agenda <ArrowRight size={14} />
-            </Link>
+            <Link to="/agenda" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">Agenda <ArrowRight size={14} /></Link>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
@@ -280,42 +185,9 @@ function DashboardMorador() {
           )}
         </CardContent>
       </Card>
-
-      {/* Investimentos */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Investimentos da Comunidade</CardTitle>
-            <Link to="/financas/minha-conta" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
-              Ver todos <ArrowRight size={14} />
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-2">
-            {investimentos.slice(0, 3).map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-foreground truncate">{inv.titulo}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(inv.data).toLocaleDateString('pt-BR')}</p>
-                </div>
-                <div className="text-right shrink-0 ml-2">
-                  <p className="text-sm text-foreground">{fmt(inv.valor)}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    inv.status === 'concluido' ? 'bg-primary/20 text-primary' :
-                    inv.status === 'em_andamento' ? 'bg-secondary/20 text-secondary' : 'bg-accent/20 text-accent'}`}>
-                    {inv.status === 'concluido' ? 'Concluído' : inv.status === 'em_andamento' ? 'Andamento' : 'Planejado'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
-
 export function Dashboard() {
   const { user } = useAuth();
   return user?.role === 'visualizador' ? <DashboardMorador /> : <DashboardAdmin />;

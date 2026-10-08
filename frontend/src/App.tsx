@@ -8,13 +8,9 @@ import { Dashboard } from './app/pages/Dashboard';
 import { Moradores } from './app/pages/Moradores';
 import { MoradorForm } from './app/pages/MoradorForm';
 import { MoradorDetalhes } from './app/pages/MoradorDetalhes';
-import { Financas } from './app/pages/Financas';
-import { Mensalidades } from './app/pages/Mensalidades';
-import { Investimentos } from './app/pages/Investimentos';
 import { Documentos } from './app/pages/Documentos';
 import { Relatorios } from './app/pages/Relatorios';
 import { Agenda } from './app/pages/Agenda';
-import { MinhaContaFinanceira } from './app/pages/MinhaContaFinanceira';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -38,7 +34,6 @@ function ProtectedRoute({ children, allowedRoles, redirectTo = '/dashboard' }: P
 
 function AppRoutes() {
   const { isAuthenticated, user } = useAuth();
-  const isMorador = user?.role === 'visualizador';
 
   return (
     <Routes>
@@ -88,47 +83,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
-      {/* Finanças: admin/técnico vê painel completo; morador é redirecionado */}
-      <Route
-        path="/financas"
-        element={
-          isMorador
-            ? <Navigate to="/financas/minha-conta" replace />
-            : (
-              <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
-                <Financas />
-              </ProtectedRoute>
-            )
-        }
-      />
-      <Route
-        path="/financas/mensalidades"
-        element={
-          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
-            <Mensalidades />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/financas/investimentos"
-        element={
-          <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
-            <Investimentos />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Conta pessoal do morador */}
-      <Route
-        path="/financas/minha-conta"
-        element={
-          <ProtectedRoute allowedRoles={['visualizador']}>
-            <MinhaContaFinanceira />
-          </ProtectedRoute>
-        }
-      />
-
       {/* Documentos: todos acessam, mas com filtro por role */}
       <Route
         path="/documentos"

@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import {
   Home, Users, FileText, BarChart3, Calendar,
-  LogOut, Waves, TreePine, Wallet, User as UserIcon, X
+  LogOut, Waves, TreePine, User as UserIcon, X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -119,12 +119,6 @@ export function Sidebar({ onLogout, open = true, onClose }: SidebarProps) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavItem to="/dashboard" icon={<Home size={20} />} label="Início" onClick={handleNavClick} />
           {!isMorador && <NavItem to="/moradores" icon={<Users size={20} />} label="Moradores" onClick={handleNavClick} />}
-          <NavItem
-            to={isMorador ? '/financas/minha-conta' : '/financas'}
-            icon={<Wallet size={20} />}
-            label={isMorador ? 'Minhas Finanças' : 'Finanças'}
-            onClick={handleNavClick}
-          />
           <NavItem
             to="/documentos"
             icon={<FileText size={20} />}
