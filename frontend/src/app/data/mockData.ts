@@ -244,61 +244,7 @@ export const mockAtividades: Atividade[] = [
   }
 ];
 
-export const mockDocumentos: Documento[] = [
-  {
-    id: '1',
-    titulo: 'Declaração de Residência - Francisco Silva',
-    tipo: 'declaracao',
-    morador: 'Francisco Ribeiro da Silva',
-    moradorId: '1',
-    dataEmissao: '2024-04-15',
-    arquivo: 'declaracao_001.pdf'
-  },
-  {
-    id: '2',
-    titulo: 'Certidão de Nascimento - Maria Souza',
-    tipo: 'certidao',
-    morador: 'Maria das Graças Souza',
-    moradorId: '2',
-    dataEmissao: '2024-04-20',
-    arquivo: 'certidao_001.pdf'
-  },
-  {
-    id: '3',
-    titulo: 'Relatório de Atendimento Comunitário',
-    tipo: 'relatorio',
-    morador: 'Vários',
-    dataEmissao: '2024-04-30',
-    arquivo: 'relatorio_abril_2024.pdf'
-  },
-  {
-    id: '4',
-    titulo: 'Declaração de Atividade Pesqueira',
-    tipo: 'declaracao',
-    morador: 'Francisco Ribeiro da Silva',
-    moradorId: '1',
-    dataEmissao: '2024-04-25',
-    arquivo: 'declaracao_pesca_001.pdf'
-  },
-  {
-    id: '5',
-    titulo: 'Declaração de Residência - Sebastiana Costa',
-    tipo: 'declaracao',
-    morador: 'Sebastiana Costa',
-    moradorId: '6',
-    dataEmissao: '2024-03-10',
-    arquivo: 'declaracao_costa_001.pdf'
-  },
-  {
-    id: '6',
-    titulo: 'Certidão de Benefício Social - Sebastiana Costa',
-    tipo: 'certidao',
-    morador: 'Sebastiana Costa',
-    moradorId: '6',
-    dataEmissao: '2024-04-05',
-    arquivo: 'certidao_beneficio_costa.pdf'
-  }
-];
+
 
 export const mockEventos: EventoAgenda[] = [
   {
