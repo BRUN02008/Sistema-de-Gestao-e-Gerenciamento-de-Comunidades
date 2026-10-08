@@ -4,7 +4,7 @@ import {
   Home, Users, FileText, BarChart3, Calendar,
   LogOut, Waves, TreePine, User as UserIcon, X
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../components/contexts/AuthContext';
 
 interface SidebarProps {
   onLogout: () => void;

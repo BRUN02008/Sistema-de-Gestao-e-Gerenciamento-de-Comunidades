@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../components/contexts/DataContext';
 import { type RelatorioAtividade, type Oficio } from '../data/mockData';
 import {
   BarChart3, Download, Users, Home as HomeIcon, Activity,

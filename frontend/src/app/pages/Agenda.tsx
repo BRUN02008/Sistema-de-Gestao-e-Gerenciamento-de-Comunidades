@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent } from '../components/Card';
 import { type EventoAgenda } from '../data/mockData';
 import { Plus, Calendar as CalendarIcon, Clock, MapPin, User, Filter, X, Trash2, Pencil } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useData } from '../contexts/DataContext';
+import { useAuth } from '../components/contexts/AuthContext';
+import { useData } from '../components/contexts/DataContext';
 import { toast } from 'sonner';
 
 const TIPO_OPTIONS = [

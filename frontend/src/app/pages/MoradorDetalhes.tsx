@@ -1,7 +1,7 @@
 import { useNavigate, useParams, Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../components/contexts/DataContext';
 import { toast } from 'sonner';
 import { ArrowLeft , Edit, Trash2 , Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon, HeartPulse, Car } from 'lucide-react';
 

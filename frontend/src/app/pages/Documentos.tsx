@@ -2,10 +2,10 @@ import { useState, useRef } from 'react';
 import { Card, CardContent } from '../components/Card';
 import { Input } from '../components/Input';
 import { type Documento } from '../data/mockData';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../components/contexts/DataContext';
 import { Plus, Search, Download, Eye, FileText, File, Lock, X, Trash2, PenLine, CheckCircle2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../components/contexts/AuthContext';
 
 const TIPO_LABELS: Record<string, string> = {
   certidao: 'Certidão', declaracao: 'Declaração', relatorio: 'Relatório', outro: 'Outro'

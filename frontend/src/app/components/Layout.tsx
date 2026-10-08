@@ -2,7 +2,7 @@ import { type ReactNode, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { GerenciarUsuarios } from './GerenciarUsuarios';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../components/contexts/AuthContext';
 import { User as UserIcon, ChevronDown, Users, LogOut, Shield, Wrench, Eye, Menu } from 'lucide-react';
 
 interface LayoutProps {

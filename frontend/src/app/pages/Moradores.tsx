@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { Card, CardContent } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../components/contexts/DataContext';
 import { Plus, Search, Eye, Edit, Phone, MapPin, Car } from 'lucide-react';
 
 export function Moradores() {

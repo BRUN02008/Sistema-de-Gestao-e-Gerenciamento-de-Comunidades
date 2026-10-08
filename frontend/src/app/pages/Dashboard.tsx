@@ -2,8 +2,8 @@ import { Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Users, Home as HomeIcon, FileText, TrendingUp, ArrowRight, Clock, User, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { useData } from '../contexts/DataContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../components/contexts/DataContext';
+import { useAuth } from '../components/contexts/AuthContext';
 
 function StatCard({ label, value, icon, color }: { label: string; value: number | string; icon: React.ReactNode; color: string }) {
   return (

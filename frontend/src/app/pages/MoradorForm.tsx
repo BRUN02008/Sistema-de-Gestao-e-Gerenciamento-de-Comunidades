@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Card, CardContent, CardHeader } from '../components/Card';
 import { Button } from '../components/Button';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../components/contexts/DataContext';
 import { ArrowLeft, Trash2 , Save, Plus, X, User, Home, HeartPulse, Car, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { type Familia } from '../data/mockData';

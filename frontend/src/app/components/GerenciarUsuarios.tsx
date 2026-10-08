@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, User, Shield, Wrench, Eye, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuth, type UserRole } from '../contexts/AuthContext';
-import { useData } from '../contexts/DataContext';
+import { useAuth, type UserRole } from '../components/contexts/AuthContext';
+import { useData } from '../components/contexts/DataContext';
 import { toast } from 'sonner';
 
 interface GerenciarUsuariosProps {
