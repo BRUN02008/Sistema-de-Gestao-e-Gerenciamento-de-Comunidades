@@ -43,6 +43,38 @@ function save<T>(key: string, value: T) {
   }
 }
 
+const DOCUMENTOS_DEMONSTRACAO = [
+  ['1', 'Declaração de Residência - Francisco Silva', 'declaracao', 'Francisco Ribeiro da Silva', '1', '2024-04-15', 'declaracao_001.pdf'],
+  ['2', 'Certidão de Nascimento - Maria Souza', 'certidao', 'Maria das Graças Souza', '2', '2024-04-20', 'certidao_001.pdf'],
+  ['3', 'Relatório de Atendimento Comunitário', 'relatorio', 'Vários', undefined, '2024-04-30', 'relatorio_abril_2024.pdf'],
+  ['4', 'Declaração de Atividade Pesqueira', 'declaracao', 'Francisco Ribeiro da Silva', '1', '2024-04-25', 'declaracao_pesca_001.pdf'],
+  ['5', 'Declaração de Residência - Sebastiana Costa', 'declaracao', 'Sebastiana Costa', '6', '2024-03-10', 'declaracao_costa_001.pdf'],
+  ['6', 'Certidão de Benefício Social - Sebastiana Costa', 'certidao', 'Sebastiana Costa', '6', '2024-04-05', 'certidao_beneficio_costa.pdf'],
+] as const;
+
+function removerDocumentosDeDemonstracao(documentos: Documento[]): Documento[] {
+  return documentos.filter((documento) => !DOCUMENTOS_DEMONSTRACAO.some((demo) =>
+    String(documento.id) === demo[0] &&
+    documento.titulo === demo[1] &&
+    documento.tipo === demo[2] &&
+    documento.morador === demo[3] &&
+    String(documento.moradorId ?? '') === String(demo[4] ?? '') &&
+    documento.dataEmissao === demo[5] &&
+    documento.arquivo === demo[6]
+  ));
+}
+
+function carregarDocumentosLocais(): Documento[] {
+  const documentos = load<Documento[]>('documentos', []);
+  if (!Array.isArray(documentos)) return [];
+
+  const documentosReais = removerDocumentosDeDemonstracao(documentos);
+  if (documentosReais.length !== documentos.length) {
+    save('documentos', documentosReais);
+  }
+  return documentosReais;
+}
+
 function normalizarIdentidadeFamilia(valor: string): string {
   return valor
     .trim()
@@ -112,6 +144,7 @@ deleteDocumento: (
 
   // Eventos
   eventos: EventoAgenda[];
+  atividadesRegistradas: AtividadeRegistrada[];
 
 addEvento: (
   e: Omit<EventoAgenda, 'id'>
@@ -206,8 +239,30 @@ interface EventoAgendaAPI {
   hora: string;
   local: string;
   responsavel: string;
-  tipo: 'reuniao' | 'evento' | 'assembleia' | 'outro';
+  tipo: EventoAgenda['tipo'];
+  status?: EventoAgenda['status'];
   criado_em?: string;
+}
+
+interface AtividadeRegistradaAPI {
+  id: number | string;
+  titulo: string;
+  descricao: string;
+  data: string;
+  responsavel: string;
+  local: string;
+  status: 'andamento' | 'concluida' | 'pendente';
+  criado_em?: string;
+}
+
+interface AtividadeRegistrada {
+  id: string;
+  titulo: string;
+  descricao: string;
+  data: string;
+  responsavel: string;
+  local: string;
+  status: EventoAgenda['status'];
 }
 
 export function DataProvider({
@@ -310,8 +365,36 @@ useEffect(() => {
 
   const [documentos, setDocumentos] =
     useState<Documento[]>(() =>
-      load('documentos', [])
+      carregarDocumentosLocais()
     );
+
+  useEffect(() => {
+    async function carregarDocumentos() {
+      try {
+        const data = await api.get('/documentos/');
+        if (!Array.isArray(data)) {
+          throw new Error('Resposta inválida ao carregar documentos.');
+        }
+
+        const documentosApi: Documento[] = (data as DocumentoAPI[]).map((documento) => ({
+          id: String(documento.id),
+          titulo: documento.titulo,
+          tipo: documento.tipo,
+          morador: documento.morador_detalhes?.nome ?? '',
+          moradorId: String(documento.morador),
+          dataEmissao: documento.data_emissao,
+          arquivo: documento.arquivo,
+        }));
+
+        setDocumentos(documentosApi);
+        save('documentos', documentosApi);
+      } catch (error) {
+        console.error('Erro ao carregar documentos do Django; mantendo apenas o cache local sem registros de demonstração:', error);
+      }
+    }
+
+    carregarDocumentos();
+  }, []);
 
   const [dependentes] =
     useState<Dependente[]>(() =>
@@ -340,6 +423,7 @@ useEffect(() => {
         local: evento.local,
         responsavel: evento.responsavel,
         tipo: evento.tipo,
+        status: evento.status,
       }));
 
       setEventos(eventosApi);
@@ -355,6 +439,35 @@ useEffect(() => {
 
   carregarEventos();
 }, []);
+
+  const [atividadesRegistradas, setAtividadesRegistradas] = useState<AtividadeRegistrada[]>([]);
+  useEffect(() => {
+    async function carregarAtividadesRegistradas() {
+      try {
+        const data = await api.get('/atividades/');
+        if (!Array.isArray(data)) {
+          console.error('A API de atividades retornou um formato inesperado.');
+          return;
+        }
+
+        const atividadesApi = (data as AtividadeRegistradaAPI[]).map((atividade) => ({
+          id: String(atividade.id),
+          titulo: atividade.titulo,
+          descricao: atividade.descricao,
+          data: atividade.data,
+          responsavel: atividade.responsavel,
+          local: atividade.local,
+          status: atividade.status === 'andamento' ? 'andamento' : atividade.status,
+        } satisfies AtividadeRegistrada));
+
+        setAtividadesRegistradas(atividadesApi);
+      } catch (error) {
+        console.error('Erro ao carregar atividades cadastradas do Django:', error);
+      }
+    }
+
+    carregarAtividadesRegistradas();
+  }, []);
 
   const [relatorios, setRelatorios] = useState<RelatorioAtividade[]>([]);
   useEffect(() => {
@@ -1175,6 +1288,7 @@ const deleteOficio = useCallback(
         dependentes,
 
         eventos,
+        atividadesRegistradas,
         addEvento,
         updateEvento,
         deleteEvento,

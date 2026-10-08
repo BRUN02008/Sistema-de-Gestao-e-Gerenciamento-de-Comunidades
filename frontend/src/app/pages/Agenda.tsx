@@ -36,28 +36,110 @@ const emptyForm = {
   status: 'pendente' as EventoAgenda['status']
 };
 
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function extrairAnoMes(data: string): { ano: number; mes: number; dia: number } | null {
+  const correspondencia = /^(\d{4})-(\d{2})-(\d{2})(?:$|T| )/.exec(data);
+  if (!correspondencia) return null;
+
+  const ano = Number(correspondencia[1]);
+  const mes = Number(correspondencia[2]);
+  const dia = Number(correspondencia[3]);
+  const diasNoMes = mes >= 1 && mes <= 12 ? new Date(Date.UTC(ano, mes, 0)).getUTCDate() : 0;
+  return dia >= 1 && dia <= diasNoMes ? { ano, mes, dia } : null;
+}
+
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors";
 
 export function Agenda() {
   const { user } = useAuth();
-  const { eventos, addEvento, updateEvento, deleteEvento } = useData();
+  const { eventos, atividadesRegistradas, relatorios, addEvento, updateEvento, deleteEvento } = useData();
   const isMorador = user?.role === 'visualizador';
 
   const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroAno, setFiltroAno] = useState('todos');
+  const [filtroMes, setFiltroMes] = useState('todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const eventosFiltrados = filtroTipo === 'todos' ? eventos : eventos.filter(e => e.tipo === filtroTipo);
-  const eventosOrdenados = [...eventosFiltrados].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-  const eventosPorMes = eventosOrdenados.reduce((acc, evento) => {
-    const mesAno = new Date(evento.data).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const textoNormalizado = (valor: string) => valor.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
+  const chaveAtividade = (titulo: string, data: string, responsavel: string) =>
+    `${textoNormalizado(titulo)}|${data.slice(0, 10)}|${textoNormalizado(responsavel)}`;
+  const chavesEventosAtividade = new Set(eventos
+    .filter((evento) => evento.tipo === 'atividade' && evento.responsavel.trim())
+    .map((evento) => chaveAtividade(evento.titulo, evento.data, evento.responsavel)));
+  const atividadesApiSemDuplicatas = atividadesRegistradas.filter((atividade) =>
+    !chavesEventosAtividade.has(chaveAtividade(atividade.titulo, atividade.data, atividade.responsavel))
+  );
+  const chavesAtividadesExistentes = new Set([
+    ...chavesEventosAtividade,
+    ...atividadesApiSemDuplicatas
+      .filter((atividade) => atividade.responsavel.trim())
+      .map((atividade) => chaveAtividade(atividade.titulo, atividade.data, atividade.responsavel)),
+  ]);
+  const relatoriosSemDuplicatas = relatorios.filter((relatorio) =>
+    !relatorio.responsavel.trim() ||
+    !chavesAtividadesExistentes.has(chaveAtividade(relatorio.titulo, relatorio.data, relatorio.responsavel))
+  );
+  const atividadesSemDuplicatas = [
+    ...atividadesApiSemDuplicatas.map((atividade) => ({
+      id: atividade.id,
+      titulo: atividade.titulo,
+      descricao: atividade.descricao,
+      data: atividade.data,
+      responsavel: atividade.responsavel,
+      local: atividade.local,
+      status: atividade.status,
+    })),
+    ...relatoriosSemDuplicatas.map((relatorio) => ({
+      id: `relatorio-${relatorio.id}`,
+      titulo: relatorio.titulo,
+      descricao: relatorio.descricao,
+      data: relatorio.data,
+      responsavel: relatorio.responsavel,
+      local: '',
+      status: relatorio.status === 'finalizado' ? 'concluida' as const : 'pendente' as const,
+    })),
+  ];
+  const registrosAgenda = [
+    ...eventos.map((evento) => ({ evento, origem: 'agenda' as const })),
+    ...atividadesSemDuplicatas.map((atividade) => ({
+      origem: 'atividade' as const,
+      evento: {
+        id: `atividade-${atividade.id}`,
+        titulo: atividade.titulo,
+        descricao: atividade.descricao,
+        data: atividade.data,
+        hora: '',
+        local: atividade.local,
+        responsavel: atividade.responsavel,
+        status: atividade.status,
+        tipo: 'atividade' as const,
+      },
+    })),
+  ];
+
+  const anosDisponiveis = [...new Set(registrosAgenda
+    .map(({ evento }) => extrairAnoMes(evento.data)?.ano)
+    .filter((ano): ano is number => ano !== undefined))].sort((a, b) => b - a);
+  const eventosFiltrados = registrosAgenda.filter(({ evento }) => {
+    const dataEvento = extrairAnoMes(evento.data);
+    return (filtroTipo === 'todos' || evento.tipo === filtroTipo) &&
+      (filtroAno === 'todos' || dataEvento?.ano === Number(filtroAno)) &&
+      (filtroMes === 'todos' || dataEvento?.mes === Number(filtroMes));
+  });
+  const eventosOrdenados = [...eventosFiltrados].sort((a, b) => a.evento.data.localeCompare(b.evento.data));
+  const eventosPorMes = eventosOrdenados.reduce((acc, registro) => {
+    const { evento } = registro;
+    const dataEvento = extrairAnoMes(evento.data);
+    const mesAno = dataEvento ? `${MESES[dataEvento.mes - 1]} ${dataEvento.ano}` : 'Data inválida';
     if (!acc[mesAno]) acc[mesAno] = [];
-    acc[mesAno].push(evento);
+    acc[mesAno].push(registro);
     return acc;
-  }, {} as Record<string, EventoAgenda[]>);
+  }, {} as Record<string, (typeof eventosOrdenados)[number][]>);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -127,16 +209,25 @@ export function Agenda() {
       </div>
 
       {/* Filtro */}
-      <div className="flex items-center gap-2 p-3 bg-card border border-border rounded-xl">
-        <Filter size={16} className="text-muted-foreground shrink-0" />
-        <select
-          value={filtroTipo}
-          onChange={e => setFiltroTipo(e.target.value)}
-          className="flex-1 bg-transparent text-foreground text-sm focus:outline-none"
-        >
-          <option value="todos">Todos os tipos</option>
-          {TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 p-3 bg-card border border-border rounded-xl">
+        <div className="flex items-center gap-2 min-w-0 sm:flex-1">
+          <Filter size={16} className="text-muted-foreground shrink-0" />
+          <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="w-full bg-transparent text-foreground text-sm focus:outline-none">
+            <option value="todos">Todos os tipos</option>
+            {TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <select value={filtroAno} onChange={e => setFiltroAno(e.target.value)} className={`${inputCls} sm:w-auto`} aria-label="Filtrar por ano">
+          <option value="todos">Todos os anos</option>
+          {anosDisponiveis.map((ano) => <option key={ano} value={ano}>{ano}</option>)}
         </select>
+        <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)} className={`${inputCls} sm:w-auto`} aria-label="Filtrar por mês">
+          <option value="todos">Todos os meses</option>
+          {MESES.map((mes, indice) => <option key={mes} value={indice + 1}>{mes}</option>)}
+        </select>
+        <button type="button" onClick={() => { setFiltroTipo('todos'); setFiltroAno('todos'); setFiltroMes('todos'); }} className="px-3 py-2.5 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors">
+          Limpar filtros
+        </button>
       </div>
 
       {/* Eventos por mês */}
@@ -145,15 +236,16 @@ export function Agenda() {
           <div key={mesAno}>
             <h2 className="text-foreground text-sm uppercase tracking-wider text-muted-foreground mb-3 capitalize">{mesAno}</h2>
             <div className="space-y-3">
-              {eventosDoMes.map((evento) => (
-                <Card key={evento.id}>
+              {eventosDoMes.map((registro) => {
+                const { evento } = registro;
+                return <Card key={`${registro.origem}-${evento.id}`}>
                   <CardContent className="p-4">
                     {/* Top row: date badge + title + badge + actions */}
                     <div className="flex items-start gap-3">
                       {/* Date badge */}
                       <div className="bg-primary/10 rounded-xl px-3 py-2 text-center shrink-0 min-w-[48px]">
-                        <p className="text-primary text-base leading-none">{new Date(evento.data).toLocaleDateString('pt-BR', { day: 'numeric' })}</p>
-                        <p className="text-xs text-muted-foreground uppercase mt-0.5">{new Date(evento.data).toLocaleDateString('pt-BR', { month: 'short' })}</p>
+                        <p className="text-primary text-base leading-none">{extrairAnoMes(evento.data)?.dia ?? '—'}</p>
+                        <p className="text-xs text-muted-foreground uppercase mt-0.5">{extrairAnoMes(evento.data) ? MESES[extrairAnoMes(evento.data)!.mes - 1].slice(0, 3) : '—'}</p>
                       </div>
 
                       {/* Content */}
@@ -164,7 +256,7 @@ export function Agenda() {
                             <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${TIPO_COLORS[evento.tipo]}`}>
                               {TIPO_LABELS[evento.tipo]}
                             </span>
-                            {!isMorador && (
+                            {!isMorador && registro.origem === 'agenda' && (
                               <>
                                 <button
                                   onClick={() => openModal(evento)}
@@ -193,12 +285,12 @@ export function Agenda() {
 
                         {/* Info chips — horizontal wrap */}
                         <div className="flex flex-wrap gap-x-4 gap-y-1">
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {evento.hora && <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock size={12} />{evento.hora}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          </span>}
+                          {evento.local && <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <MapPin size={12} />{evento.local}
-                          </span>
+                          </span>}
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <User size={12} />{evento.responsavel}
                           </span>
@@ -206,8 +298,8 @@ export function Agenda() {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              ))}
+                </Card>;
+              })}
             </div>
           </div>
         ))}
