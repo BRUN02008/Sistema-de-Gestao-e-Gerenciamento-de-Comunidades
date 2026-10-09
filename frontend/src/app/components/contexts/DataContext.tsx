@@ -100,6 +100,8 @@ function familiaDuplicada(
 interface DataContextType {
   // Moradores
   moradores: Morador[];
+  moradoresCarregando: boolean;
+  moradoresErro: boolean;
   addMorador: (
     
     m: Omit<Morador, 'id' | 'dataCadastro'>
@@ -225,6 +227,7 @@ interface RelatorioAPI {
   descricao: string;
   data: string;
   responsavel: string;
+  responsavel_morador_id?: number | string | null;
   categoria: string;
   status: RelatorioAtividade['status'];
   imagens: string[];
@@ -240,6 +243,7 @@ interface EventoAgendaAPI {
   hora: string;
   local: string;
   responsavel: string;
+  responsavel_morador_id?: number | string | null;
   tipo: EventoAgenda['tipo'];
   status?: EventoAgenda['status'];
   criado_em?: string;
@@ -280,6 +284,8 @@ export function DataProvider({
    */
 
   const [moradores, setMoradores] = useState<Morador[]>([]);
+  const [moradoresCarregando, setMoradoresCarregando] = useState(true);
+  const [moradoresErro, setMoradoresErro] = useState(false);
   
 
   useEffect(() => {
@@ -301,6 +307,7 @@ export function DataProvider({
         }));
 
         setMoradores(moradoresApi);
+        setMoradoresErro(false);
 
         /*
          * Mantemos uma cópia local apenas temporariamente
@@ -317,9 +324,10 @@ export function DataProvider({
          * Se a API estiver indisponível, usamos os dados
          * antigos como fallback.
          */
-        setMoradores(
-          load('moradores', [])
-        );
+        setMoradores(load('moradores', []));
+        setMoradoresErro(true);
+      } finally {
+        setMoradoresCarregando(false);
       }
     }
 
@@ -447,6 +455,7 @@ useEffect(() => {
         hora: evento.hora,
         local: evento.local,
         responsavel: evento.responsavel,
+        responsavelMoradorId: evento.responsavel_morador_id == null ? null : String(evento.responsavel_morador_id),
         tipo: evento.tipo,
         status: evento.status,
       }));
@@ -513,6 +522,7 @@ useEffect(() => {
         descricao: r.descricao,
         data: r.data,
         responsavel: r.responsavel,
+        responsavelMoradorId: r.responsavel_morador_id == null ? null : String(r.responsavel_morador_id),
         categoria: r.categoria,
         status: r.status,
         imagens: r.imagens ?? [],
@@ -960,6 +970,7 @@ const deleteDocumento = useCallback(
         hora: e.hora,
         local: e.local,
         responsavel: e.responsavel,
+        responsavel_morador_id: e.responsavelMoradorId ? Number(e.responsavelMoradorId) : null,
         tipo: e.tipo,
       })) as EventoAgendaAPI;
 
@@ -971,6 +982,7 @@ const deleteDocumento = useCallback(
         hora: data.hora,
         local: data.local,
         responsavel: data.responsavel,
+        responsavelMoradorId: data.responsavel_morador_id == null ? null : String(data.responsavel_morador_id),
         tipo: data.tipo,
       };
 
@@ -995,6 +1007,7 @@ const deleteDocumento = useCallback(
         hora: e.hora,
         local: e.local,
         responsavel: e.responsavel,
+        responsavel_morador_id: e.responsavelMoradorId ? Number(e.responsavelMoradorId) : null,
         tipo: e.tipo,
       })) as EventoAgendaAPI;
 
@@ -1006,6 +1019,7 @@ const deleteDocumento = useCallback(
         hora: data.hora,
         local: data.local,
         responsavel: data.responsavel,
+        responsavelMoradorId: data.responsavel_morador_id == null ? null : String(data.responsavel_morador_id),
         tipo: data.tipo,
       };
 
@@ -1054,6 +1068,7 @@ const deleteDocumento = useCallback(
         descricao: r.descricao,
         data: r.data,
         responsavel: r.responsavel,
+        responsavel_morador_id: r.responsavelMoradorId ? Number(r.responsavelMoradorId) : null,
         categoria: r.categoria,
         status: r.status,
         imagens: r.imagens ?? [],
@@ -1065,6 +1080,7 @@ const deleteDocumento = useCallback(
         descricao: data.descricao,
         data: data.data,
         responsavel: data.responsavel,
+        responsavelMoradorId: data.responsavel_morador_id == null ? null : String(data.responsavel_morador_id),
         categoria: data.categoria,
         status: data.status,
         imagens: data.imagens ?? [],
@@ -1093,6 +1109,7 @@ const updateRelatorio = useCallback(
         descricao: r.descricao,
         data: r.data,
         responsavel: r.responsavel,
+        responsavel_morador_id: r.responsavelMoradorId ? Number(r.responsavelMoradorId) : null,
         categoria: r.categoria,
         status: r.status,
         imagens: r.imagens ?? [],
@@ -1104,6 +1121,7 @@ const updateRelatorio = useCallback(
         descricao: data.descricao,
         data: data.data,
         responsavel: data.responsavel,
+        responsavelMoradorId: data.responsavel_morador_id == null ? null : String(data.responsavel_morador_id),
         categoria: data.categoria,
         status: data.status,
         imagens: data.imagens ?? [],
@@ -1307,6 +1325,8 @@ const deleteOficio = useCallback(
     <DataContext.Provider
       value={{
         moradores,
+        moradoresCarregando,
+        moradoresErro,
         addMorador,
         updateMorador,
         deleteMorador,

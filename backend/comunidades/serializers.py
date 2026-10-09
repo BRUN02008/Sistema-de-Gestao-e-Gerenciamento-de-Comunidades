@@ -377,7 +377,49 @@ class AssinaturaDocumentoSerializer(serializers.ModelSerializer):
         ]
         
         
-class EventoAgendaSerializer(serializers.ModelSerializer):
+class ResponsavelMoradorSerializerMixin:
+    responsavel_morador_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        responsavel_id = attrs.pop("responsavel_morador_id", None)
+        if responsavel_id is None:
+            if self.instance is None or "responsavel" in attrs:
+                raise serializers.ValidationError({
+                    "responsavel_morador_id": "Selecione um morador cadastrado como responsável."
+                })
+            return attrs
+
+        try:
+            morador = Morador.objects.get(pk=responsavel_id)
+        except Morador.DoesNotExist:
+            raise serializers.ValidationError({
+                "responsavel_morador_id": "O morador selecionado não foi encontrado."
+            })
+        attrs["_responsavel_morador"] = morador
+        attrs["responsavel"] = morador.nome
+        return attrs
+
+    def create(self, validated_data):
+        morador = validated_data.pop("_responsavel_morador")
+        validated_data["responsavel_morador"] = morador
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        morador = validated_data.pop("_responsavel_morador", None)
+        if morador:
+            validated_data["responsavel_morador"] = morador
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["responsavel_morador_id"] = instance.responsavel_morador_id
+        if instance.responsavel_morador_id:
+            data["responsavel"] = instance.responsavel_morador.nome
+        return data
+
+
+class EventoAgendaSerializer(ResponsavelMoradorSerializerMixin, serializers.ModelSerializer):
 
     class Meta:
         model = EventoAgenda
@@ -385,6 +427,7 @@ class EventoAgendaSerializer(serializers.ModelSerializer):
             "id",
             "titulo",
             "responsavel",
+            "responsavel_morador_id",
             "descricao",
             "data",
             "hora",
@@ -400,7 +443,7 @@ class EventoAgendaSerializer(serializers.ModelSerializer):
         ]
 
 
-class RelatorioAtividadeSerializer(serializers.ModelSerializer):
+class RelatorioAtividadeSerializer(ResponsavelMoradorSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = RelatorioAtividade
         fields = [
@@ -409,6 +452,7 @@ class RelatorioAtividadeSerializer(serializers.ModelSerializer):
             "descricao",
             "data",
             "responsavel",
+            "responsavel_morador_id",
             "categoria",
             "status",
             "imagens",

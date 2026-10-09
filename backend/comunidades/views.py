@@ -146,7 +146,7 @@ class AssinaturaDocumentoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminTecnicoOrReadOnly]
 
 class EventoAgendaViewSet(viewsets.ModelViewSet):
-    queryset = EventoAgenda.objects.all().order_by("data", "hora")
+    queryset = EventoAgenda.objects.select_related("responsavel_morador").order_by("data", "hora")
     serializer_class = EventoAgendaSerializer
     permission_classes = [IsAdminTecnicoOrReadOnly]
 
@@ -360,6 +360,6 @@ class FinancasResumoView(APIView):
         
         
 class RelatorioAtividadeViewSet(viewsets.ModelViewSet):
-    queryset = RelatorioAtividade.objects.all().order_by("-data")
+    queryset = RelatorioAtividade.objects.select_related("responsavel_morador").order_by("-data")
     serializer_class = RelatorioAtividadeSerializer
     permission_classes = [IsAdminTecnicoOrReadOnly]

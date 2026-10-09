@@ -603,12 +603,6 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
                   <option value="">Selecione o morador...</option>
                   {moradores.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                 </select>
-                {!form.moradorId && (
-                  <div className="mt-2">
-                    <input type="text" value={form.morador} onChange={e => field('morador', e.target.value)}
-                      placeholder="Ou digite o nome manualmente" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                  </div>
-                )}
                 {errors.morador && <p className="text-xs text-destructive mt-1">{errors.morador}</p>}
               </div>
 

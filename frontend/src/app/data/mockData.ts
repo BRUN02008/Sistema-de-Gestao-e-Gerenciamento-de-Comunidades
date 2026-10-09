@@ -66,6 +66,7 @@ export interface EventoAgenda {
   hora: string;
   local: string;
   responsavel: string;
+  responsavelMoradorId?: string | null;
   status?: 'pendente' | 'andamento' | 'concluida' | 'cancelada';
   tipo: 'reuniao' | 'evento' | 'assembleia' | 'outro' | 'atividade';
 }
@@ -306,6 +307,7 @@ export interface RelatorioAtividade {
   descricao: string;
   data: string;
   responsavel: string;
+  responsavelMoradorId?: string | null;
   categoria: string;
   status: 'rascunho' | 'finalizado';
   imagens: string[];

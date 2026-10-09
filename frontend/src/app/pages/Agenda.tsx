@@ -4,6 +4,7 @@ import { type EventoAgenda } from '../data/mockData';
 import { Plus, Calendar as CalendarIcon, Clock, MapPin, User, Filter, X, Trash2, Pencil } from 'lucide-react';
 import { useAuth } from '../components/contexts/AuthContext';
 import { useData } from '../components/contexts/DataContext';
+import { Select } from '../components/Select';
 import { toast } from 'sonner';
 
 const TIPO_OPTIONS = [
@@ -32,6 +33,7 @@ const emptyForm = {
   hora: '',
   local: '',
   responsavel: '',
+  responsavelMoradorId: '',
   tipo: 'reuniao' as EventoAgenda['tipo'],
   status: 'pendente' as EventoAgenda['status']
 };
@@ -53,7 +55,8 @@ const inputCls = "w-full px-3 py-2.5 rounded-lg border border-border bg-backgrou
 
 export function Agenda() {
   const { user } = useAuth();
-  const { eventos, atividadesRegistradas, relatorios, addEvento, updateEvento, deleteEvento } = useData();
+  const { eventos, atividadesRegistradas, relatorios, moradores, moradoresCarregando, moradoresErro, addEvento, updateEvento, deleteEvento } = useData();
+  const moradoresParaResponsavel = moradoresErro ? [] : moradores;
   const isMorador = user?.role === 'visualizador';
 
   const [filtroTipo, setFiltroTipo] = useState('todos');
@@ -147,13 +150,13 @@ export function Agenda() {
     if (!form.data) e.data = 'Data é obrigatória';
     if (!form.hora) e.hora = 'Horário é obrigatório';
     if (!form.local.trim()) e.local = 'Local é obrigatório';
-    if (!form.responsavel.trim()) e.responsavel = 'Responsável é obrigatório';
+    if (!form.responsavelMoradorId) e.responsavel = 'Selecione um morador responsável';
     return e;
   };
 
   const openModal = (evento?: EventoAgenda) => {
     if (evento) {
-      setForm({ titulo: evento.titulo, descricao: evento.descricao, data: evento.data, hora: evento.hora, local: evento.local, responsavel: evento.responsavel, tipo: evento.tipo, status: evento.status });
+      setForm({ titulo: evento.titulo, descricao: evento.descricao, data: evento.data, hora: evento.hora, local: evento.local, responsavel: evento.responsavel, responsavelMoradorId: evento.responsavelMoradorId ?? '', tipo: evento.tipo, status: evento.status });
       setEditId(evento.id);
     } else {
       setForm(emptyForm);
@@ -165,19 +168,23 @@ export function Agenda() {
 
   const closeModal = () => { setModalOpen(false); setEditId(null); setErrors({}); };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    try {
     if (editId) {
       const existing = eventos.find(ev => ev.id === editId)!;
-      updateEvento({ ...existing, ...form });
+      await updateEvento({ ...existing, ...form });
       toast.success(`Evento "${form.titulo}" atualizado!`);
     } else {
-      addEvento(form);
+      await addEvento(form);
       toast.success(`Evento "${form.titulo}" adicionado à agenda!`);
     }
     closeModal();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o evento.');
+    }
   };
 
   const handleDelete = (id: string) => { deleteEvento(id); toast.success('Evento removido'); setConfirmDelete(null); };
@@ -382,12 +389,23 @@ export function Agenda() {
                 {errors.local && <p className="text-xs text-destructive mt-1">{errors.local}</p>}
               </div>
 
-              <div>
-                <label className="block text-sm text-foreground mb-1.5">Responsável *</label>
-                <input type="text" value={form.responsavel} onChange={e => field('responsavel', e.target.value)}
-                  placeholder="Nome do responsável" className={inputCls} />
-                {errors.responsavel && <p className="text-xs text-destructive mt-1">{errors.responsavel}</p>}
-              </div>
+              <Select
+                label="Responsável *"
+                value={form.responsavelMoradorId}
+                onChange={e => {
+                  const pessoa = moradoresParaResponsavel.find(m => String(m.id) === e.target.value);
+                  setForm(prev => ({ ...prev, responsavelMoradorId: e.target.value, responsavel: pessoa?.nome ?? '' }));
+                  if (errors.responsavel) setErrors(prev => { const next = { ...prev }; delete next.responsavel; return next; });
+                }}
+                options={[
+                  { value: '', label: moradoresCarregando ? 'Carregando moradores...' : moradoresErro ? 'Não foi possível carregar moradores' : moradoresParaResponsavel.length ? 'Selecione o responsável' : 'Nenhum morador cadastrado' },
+                  ...moradoresParaResponsavel.map(m => ({ value: String(m.id), label: `${m.nome}${moradoresParaResponsavel.filter(outro => outro.nome === m.nome).length > 1 ? ` · cadastro ${m.id}` : ''}` })),
+                ]}
+                error={errors.responsavel}
+                disabled={moradoresCarregando || moradoresErro || moradoresParaResponsavel.length === 0}
+                fullWidth
+              />
+              <p className="text-xs text-muted-foreground -mt-3">A lista usa moradores cadastrados. Administradores que também são moradores aparecem uma única vez; contas sem cadastro de morador não são criadas automaticamente.</p>
 
               <div>
                 <label className="block text-sm text-foreground mb-1.5">Descrição</label>

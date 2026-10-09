@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
+import { Select } from '../components/Select';
 import { useData } from '../components/contexts/DataContext';
 import { type RelatorioAtividade, type Oficio } from '../data/mockData';
 import {
@@ -28,6 +29,7 @@ const REL_STATUS_COLORS: Record<string, string> = {
 
 const emptyRelatorio = {
   titulo: '', descricao: '', data: '', responsavel: '',
+  responsavelMoradorId: '',
   categoria: '', status: 'rascunho' as RelatorioAtividade['status'], imagens: [] as string[]
 };
 
@@ -83,6 +85,7 @@ type Aba = 'moradores' | 'familias' | 'atividades' | 'relatorios_atividade' | 'o
 export function Relatorios() {
   const {
   moradores: mockMoradores,
+  moradoresCarregando, moradoresErro,
   familias: mockFamilias,
   eventos,
   relatorios,
@@ -90,6 +93,7 @@ export function Relatorios() {
   addRelatorio, updateRelatorio, deleteRelatorio,
   addOficio, updateOficio, deleteOficio
 } = useData();
+  const moradoresParaResponsavel = moradoresErro ? [] : mockMoradores;
 
   const [tipoRelatorio, setTipoRelatorio] = useState<Aba>('moradores');
 
@@ -204,13 +208,13 @@ export function Relatorios() {
     const e: Record<string, string> = {};
     if (!relForm.titulo.trim()) e.titulo = 'Título é obrigatório';
     if (!relForm.data) e.data = 'Data é obrigatória';
-    if (!relForm.responsavel.trim()) e.responsavel = 'Responsável é obrigatório';
+    if (!relForm.responsavelMoradorId) e.responsavel = 'Selecione um morador responsável';
     return e;
   };
 
   const openRelModal = (rel?: RelatorioAtividade) => {
     if (rel) {
-      setRelForm({ titulo: rel.titulo, descricao: rel.descricao, data: rel.data, responsavel: rel.responsavel, categoria: rel.categoria, status: rel.status, imagens: [...rel.imagens] });
+      setRelForm({ titulo: rel.titulo, descricao: rel.descricao, data: rel.data, responsavel: rel.responsavel, responsavelMoradorId: rel.responsavelMoradorId ?? '', categoria: rel.categoria, status: rel.status, imagens: [...rel.imagens] });
       setRelEditId(rel.id);
     } else {
       setRelForm(emptyRelatorio);
@@ -220,19 +224,23 @@ export function Relatorios() {
     setRelModal(true);
   };
 
-  const handleRelSubmit = (e: React.FormEvent) => {
+  const handleRelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validateRel();
     if (Object.keys(errs).length) { setRelErrors(errs); return; }
+    try {
     if (relEditId) {
       const existing = relatorios.find(r => r.id === relEditId)!;
-      updateRelatorio({ ...existing, ...relForm });
+      await updateRelatorio({ ...existing, ...relForm });
       toast.success('Relatório atualizado!');
     } else {
-      addRelatorio(relForm);
+      await addRelatorio(relForm);
       toast.success('Relatório registrado!');
     }
     setRelModal(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o relatório.');
+    }
   };
 
   // Ofício CRUD
@@ -663,13 +671,23 @@ export function Relatorios() {
                     className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
                   {relErrors.data && <p className="text-xs text-destructive mt-1">{relErrors.data}</p>}
                 </div>
-                <div>
-                  <label className="block text-sm text-foreground mb-1">Responsável *</label>
-                  <input type="text" value={relForm.responsavel} onChange={e => setRelForm(p => ({ ...p, responsavel: e.target.value }))}
-                    placeholder="Nome do responsável"
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                  {relErrors.responsavel && <p className="text-xs text-destructive mt-1">{relErrors.responsavel}</p>}
-                </div>
+                <Select
+                  label="Responsável *"
+                  value={relForm.responsavelMoradorId}
+                  onChange={e => {
+                    const pessoa = moradoresParaResponsavel.find(m => String(m.id) === e.target.value);
+                    setRelForm(prev => ({ ...prev, responsavelMoradorId: e.target.value, responsavel: pessoa?.nome ?? '' }));
+                    if (relErrors.responsavel) setRelErrors(prev => { const next = { ...prev }; delete next.responsavel; return next; });
+                  }}
+                  options={[
+                    { value: '', label: moradoresCarregando ? 'Carregando moradores...' : moradoresErro ? 'Não foi possível carregar moradores' : moradoresParaResponsavel.length ? 'Selecione o responsável' : 'Nenhum morador cadastrado' },
+                    ...moradoresParaResponsavel.map(m => ({ value: String(m.id), label: `${m.nome}${moradoresParaResponsavel.filter(outro => outro.nome === m.nome).length > 1 ? ` · cadastro ${m.id}` : ''}` })),
+                  ]}
+                  error={relErrors.responsavel}
+                  disabled={moradoresCarregando || moradoresErro || moradoresParaResponsavel.length === 0}
+                  fullWidth
+                />
+                <p className="text-xs text-muted-foreground -mt-3">A lista usa moradores cadastrados. Administradores que também são moradores aparecem uma única vez; contas sem cadastro de morador não são criadas automaticamente.</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

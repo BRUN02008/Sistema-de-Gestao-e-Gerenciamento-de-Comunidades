@@ -281,6 +281,13 @@ class EventoAgenda(models.Model):
     max_length=200,
     blank=True
     )
+    responsavel_morador = models.ForeignKey(
+        Morador,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos_agenda_responsavel",
+    )
 
     descricao = models.TextField(
         blank=True
@@ -368,6 +375,13 @@ class RelatorioAtividade(models.Model):
     data = models.DateField()
 
     responsavel = models.CharField(max_length=200)
+    responsavel_morador = models.ForeignKey(
+        Morador,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="relatorios_atividade_responsavel",
+    )
 
     categoria = models.CharField(max_length=100)
 
