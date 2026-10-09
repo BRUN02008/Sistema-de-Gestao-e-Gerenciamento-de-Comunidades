@@ -50,7 +50,7 @@ export function Moradores() {
     const correspondeBusca =
       morador.nome.toLowerCase().includes(textoBusca) ||
       morador.cpf.includes(busca) ||
-      morador.familia.toLowerCase().includes(textoBusca);
+      (morador.familia ?? '').toLowerCase().includes(textoBusca);
     const dataCadastro = extrairAnoMes(morador.dataCadastro);
     const correspondeAno = anoSelecionado === 'todos' || dataCadastro?.ano === Number(anoSelecionado);
     const correspondeMes = mesSelecionado === 'todos' || dataCadastro?.mes === Number(mesSelecionado);

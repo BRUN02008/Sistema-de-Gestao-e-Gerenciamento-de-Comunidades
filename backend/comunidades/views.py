@@ -56,9 +56,9 @@ class FamiliaViewSet(viewsets.ModelViewSet):
 
         # Visualizador só pode visualizar a própria família
         if user.perfil.role == "visualizador":
-            if user.perfil.morador:
+            if user.perfil.morador and user.perfil.morador.familia_id:
                 return Familia.objects.filter(
-                    id=user.perfil.morador.familia.id
+                    id=user.perfil.morador.familia_id
                 )
 
             return Familia.objects.none()

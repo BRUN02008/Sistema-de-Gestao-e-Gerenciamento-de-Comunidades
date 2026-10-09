@@ -11,7 +11,7 @@ export interface Morador {
   dataNascimento: string;
   cpf: string;
   rg: string;
-  familia: string;
+  familia: string | null;
   telefone: string;
   ocupacao: string;
   escolaridade: string;
@@ -26,6 +26,7 @@ export interface Familia {
   id: string;
   nome: string; 
   responsavel: string;
+  responsavelMoradorId?: string | null;
   total_membros: number;
   endereco: string;
 }

@@ -4,11 +4,12 @@ import { useAuth } from '../components/contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
-import { Waves, TreePine } from 'lucide-react';
+import { Waves, TreePine, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -58,14 +59,18 @@ if (result.success) {
                 fullWidth
               />
 
-              <Input
-                type="password"
-                label="Senha"
-                placeholder="Digite sua senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                fullWidth
-              />
+              <div>
+                <label className="block mb-2 text-foreground">Senha</label>
+                <div className="relative">
+                  <Input type={mostrarSenha ? 'text' : 'password'} placeholder="Digite sua senha" value={senha}
+                    onChange={(e) => setSenha(e.target.value)} fullWidth className="pr-12" />
+                  <button type="button" aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                    onClick={() => setMostrarSenha((visivel) => !visivel)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
 
               {erro && (
                 <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg">

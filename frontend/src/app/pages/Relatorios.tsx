@@ -157,7 +157,7 @@ export function Relatorios() {
   const dadosExportacao = (): { titulo: string; colunas: string[]; linhas: string[][] } => {
     switch (tipoRelatorio) {
       case 'moradores':
-        return { titulo: 'Relatório de Moradores', colunas: ['Nome', 'CPF', 'Família', 'Ocupação', 'Escolaridade', 'Data de cadastro', 'Status'], linhas: mockMoradores.map(m => [m.nome, m.cpf, m.familia, m.ocupacao, m.escolaridade, m.dataCadastro, m.status]) };
+        return { titulo: 'Relatório de Moradores', colunas: ['Nome', 'CPF', 'Família', 'Ocupação', 'Escolaridade', 'Data de cadastro', 'Status'], linhas: mockMoradores.map(m => [m.nome, m.cpf, m.familia ?? '', m.ocupacao, m.escolaridade, m.dataCadastro, m.status]) };
       case 'familias':
         return { titulo: 'Relatório de Famílias', colunas: ['Família', 'Responsável', 'Membros', 'Endereço'], linhas: mockFamilias.map(f => [f.nome, f.responsavel, String(f.total_membros), f.endereco]) };
       case 'atividades':

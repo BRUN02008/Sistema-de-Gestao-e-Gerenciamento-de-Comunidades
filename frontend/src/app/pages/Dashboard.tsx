@@ -22,7 +22,7 @@ function StatCard({ label, value, icon, color }: { label: string; value: number 
 }
 
 function DashboardAdmin() {
-  const { moradores, familias, atividades, documentos } = useData();
+  const { moradores, familias, atividades, documentos, atividadesCarregando, atividadesErro } = useData();
 
   const atividadesPorStatus = [
     { name: 'Concluídas', value: atividades.filter(a => a.status === 'concluida').length, color: '#5c8a3e' },
@@ -115,8 +115,14 @@ function DashboardAdmin() {
                 </span>
               </div>
             ))}
-            {atividades.length === 0 && (
-              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma atividade registrada</p>
+            {atividadesCarregando && (
+              <p className="text-center py-6 text-sm text-muted-foreground">Carregando atividades...</p>
+            )}
+            {!atividadesCarregando && atividadesErro && (
+              <p className="text-center py-6 text-sm text-destructive">Não foi possível carregar as atividades.</p>
+            )}
+            {!atividadesCarregando && !atividadesErro && atividades.length === 0 && (
+              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma atividade recente registrada</p>
             )}
           </div>
         </CardContent>

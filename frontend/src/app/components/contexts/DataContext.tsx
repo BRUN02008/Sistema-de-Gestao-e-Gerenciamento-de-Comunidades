@@ -17,7 +17,6 @@ import {
   type RelatorioAtividade,
   type Oficio,
 
-  mockAtividades,
   mockDependentes,
 } from '../../data/mockData';
 
@@ -119,6 +118,8 @@ deleteFamilia: (id: string) => Promise<void>;
 
   // Atividades
   atividades: Atividade[];
+  atividadesCarregando: boolean;
+  atividadesErro: boolean;
 
   // Documentos
   documentos: Documento[];
@@ -293,7 +294,7 @@ export function DataProvider({
         const moradoresApi: Morador[] = data.map((m) => ({
           ...m,
           id: String(m.id),
-          familia: String(m.familia),
+          familia: m.familia == null ? null : String(m.familia),
           dataCadastro:
             m.dataCadastro ||
             new Date().toISOString().split('T')[0],
@@ -341,7 +342,11 @@ useEffect(() => {
       const data = await api.get('/familias/');
 
       if (Array.isArray(data)) {
-        setFamilias(data);
+        setFamilias(data.map((f: Familia & { responsavel_morador_id?: number | string | null }) => ({
+          ...f,
+          id: String(f.id),
+          responsavelMoradorId: f.responsavel_morador_id == null ? null : String(f.responsavel_morador_id),
+        })));
       } else {
         setFamilias([]);
       }
@@ -358,10 +363,30 @@ useEffect(() => {
   carregarFamilias();
 }, []);
 
-  const [atividades] =
-    useState<Atividade[]>(() =>
-      load('atividades', mockAtividades)
-    );
+  const [atividades, setAtividades] = useState<Atividade[]>([]);
+  const [atividadesCarregando, setAtividadesCarregando] = useState(true);
+  const [atividadesErro, setAtividadesErro] = useState(false);
+  useEffect(() => {
+    async function carregarAtividades() {
+      try {
+        const data = await api.get('/atividades/');
+        if (!Array.isArray(data)) throw new Error('Resposta inválida ao carregar atividades.');
+        setAtividades((data as AtividadeRegistradaAPI[]).map((atividade) => ({
+          id: String(atividade.id), tipo: atividade.titulo, descricao: atividade.descricao,
+          responsavel: atividade.responsavel, data: atividade.data,
+          status: atividade.status === 'andamento' ? 'em_andamento' : atividade.status,
+        })));
+        setAtividadesErro(false);
+      } catch (error) {
+        console.error('Erro ao carregar atividades do Django:', error);
+        setAtividades([]);
+        setAtividadesErro(true);
+      } finally {
+        setAtividadesCarregando(false);
+      }
+    }
+    void carregarAtividades();
+  }, []);
 
   const [documentos, setDocumentos] =
     useState<Documento[]>(() =>
@@ -570,7 +595,7 @@ useEffect(() => {
             data_nascimento: m.dataNascimento,
             cpf: m.cpf,
             rg: m.rg,
-            familia: Number(m.familia),
+            familia: m.familia ? Number(m.familia) : null,
             telefone: m.telefone,
             ocupacao: m.ocupacao,
             escolaridade: m.escolaridade,
@@ -585,7 +610,7 @@ useEffect(() => {
           ...m,
           ...data,
           id: String(data.id),
-          familia: String(data.familia),
+          familia: data.familia == null ? null : String(data.familia),
           dataCadastro:
             data.dataCadastro ||
             new Date().toISOString().split('T')[0],
@@ -620,7 +645,7 @@ useEffect(() => {
             data_nascimento: m.dataNascimento,
             cpf: m.cpf,
             rg: m.rg,
-            familia: Number(m.familia),
+            familia: m.familia ? Number(m.familia) : null,
             telefone: m.telefone,
             ocupacao: m.ocupacao,
             escolaridade: m.escolaridade,
@@ -635,7 +660,7 @@ useEffect(() => {
           ...m,
           ...data,
           id: String(data.id),
-          familia: String(data.familia),
+          familia: data.familia == null ? null : String(data.familia),
         };
 
         setMoradores((prev) => {
@@ -688,17 +713,23 @@ useEffect(() => {
       const data = (await api.post('/familias/', {
         nome: f.nome,
         responsavel: f.responsavel,
+        responsavel_morador_id: f.responsavelMoradorId ? Number(f.responsavelMoradorId) : null,
         endereco: f.endereco,
         total_membros: f.total_membros,
-      })) as Familia;
+      })) as Familia & { responsavel_morador_id?: number | string | null };
 
       const nova: Familia = {
         ...f,
         ...data,
         id: String(data.id),
+        responsavelMoradorId: data.responsavel_morador_id == null ? null : String(data.responsavel_morador_id),
       };
 
       setFamilias((prev) => [...prev, nova]);
+      if (f.responsavelMoradorId) {
+        setMoradores((prev) => prev.map((morador) => String(morador.id) === String(f.responsavelMoradorId)
+          ? { ...morador, familia: nova.id } : morador));
+      }
 
       return nova;
     } catch (error) {
@@ -710,7 +741,7 @@ useEffect(() => {
       throw error;
     }
   },
-  [familias]
+  [familias, moradores]
 );
 
   const updateFamilia = useCallback(
@@ -728,16 +759,23 @@ useEffect(() => {
         {
           nome: f.nome,
           responsavel: f.responsavel,
+        responsavel_morador_id: f.responsavelMoradorId ? Number(f.responsavelMoradorId) : null,
           endereco: f.endereco,
           total_membros: f.total_membros,
         }
-      )) as Familia;
+      )) as Familia & { responsavel_morador_id?: number | string | null };
 
       const atualizada: Familia = {
         ...f,
         ...data,
         id: String(data.id),
+        responsavelMoradorId: data.responsavel_morador_id == null ? null : String(data.responsavel_morador_id),
       };
+
+      if (f.responsavelMoradorId) {
+        setMoradores((prev) => prev.map((morador) => String(morador.id) === String(f.responsavelMoradorId)
+          ? { ...morador, familia: atualizada.id } : morador));
+      }
 
       setFamilias((prev) => {
         const next = prev.map((x) =>
@@ -759,7 +797,7 @@ useEffect(() => {
       throw error;
     }
   },
-  [familias]
+  [familias, moradores]
 );
 
   const deleteFamilia = useCallback(
@@ -1279,6 +1317,8 @@ const deleteOficio = useCallback(
         deleteFamilia,
 
         atividades,
+        atividadesCarregando,
+        atividadesErro,
 
         documentos,
         addDocumento,

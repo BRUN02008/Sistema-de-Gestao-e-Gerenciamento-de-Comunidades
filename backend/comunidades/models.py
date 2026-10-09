@@ -36,7 +36,9 @@ class Morador(models.Model):
     familia = models.ForeignKey(
         Familia,
         on_delete=models.PROTECT,
-        related_name="moradores"
+        related_name="moradores",
+        null=True,
+        blank=True,
     )
 
     telefone = models.CharField(max_length=20, blank=True)

@@ -7,9 +7,9 @@ import { Home, Plus, Search, Pencil, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { type Familia } from '../data/mockData';
 
-type FormFamilia = Pick<Familia, 'nome' | 'responsavel' | 'endereco'>;
+type FormFamilia = Pick<Familia, 'nome' | 'responsavel' | 'endereco'> & { responsavelMoradorId: string };
 
-const formVazio: FormFamilia = { nome: '', responsavel: '', endereco: '' };
+const formVazio: FormFamilia = { nome: '', responsavel: '', responsavelMoradorId: '', endereco: '' };
 
 function normalizarIdentidade(valor: string) {
   return valor.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
@@ -52,7 +52,8 @@ export function Familias() {
 
   const abrirEdicao = (familia: Familia) => {
     setFamiliaEditando(familia);
-    setForm({ nome: familia.nome, responsavel: familia.responsavel, endereco: familia.endereco });
+    const responsavel = moradores.find((morador) => morador.nome === familia.responsavel && String(morador.familia) === String(familia.id));
+    setForm({ nome: familia.nome, responsavel: familia.responsavel, responsavelMoradorId: familia.responsavelMoradorId ?? responsavel?.id ?? '', endereco: familia.endereco });
     setErroNome('');
     setModalAberto(true);
   };
@@ -67,14 +68,19 @@ export function Familias() {
     event.preventDefault();
     const nome = form.nome.trim();
     const responsavel = form.responsavel.trim();
+    const moradorResponsavel = moradores.find((morador) => String(morador.id) === form.responsavelMoradorId);
     if (!nome) {
       setErroNome('O nome da família é obrigatório.');
+      return;
+    }
+    if (!moradorResponsavel) {
+      toast.error('Selecione um morador cadastrado como responsável.');
       return;
     }
 
     const identidadeMudou = !familiaEditando ||
       normalizarIdentidade(nome) !== normalizarIdentidade(familiaEditando.nome) ||
-      normalizarIdentidade(responsavel) !== normalizarIdentidade(familiaEditando.responsavel);
+      form.responsavelMoradorId !== (familiaEditando.responsavelMoradorId ?? '');
     const duplicada = identidadeMudou && familias.some((familia) =>
       String(familia.id) !== String(familiaEditando?.id ?? '') &&
       normalizarIdentidade(familia.nome) === normalizarIdentidade(nome) &&
@@ -95,7 +101,7 @@ export function Familias() {
           ...familiaEditando,
           ...form,
           nome,
-          responsavel,
+          responsavel: moradorResponsavel.nome,
           endereco: form.endereco.trim(),
           total_membros: moradoresVinculados,
         });
@@ -104,7 +110,7 @@ export function Familias() {
         await addFamilia({
           ...form,
           nome,
-          responsavel,
+          responsavel: moradorResponsavel.nome,
           endereco: form.endereco.trim(),
           total_membros: 0,
         });
@@ -254,8 +260,16 @@ export function Familias() {
                 {erroNome && <p className="text-xs text-destructive mt-1">{erroNome}</p>}
               </div>
               <div>
-                <label className="block text-sm text-foreground mb-1">Responsável familiar</label>
-                <Input value={form.responsavel} onChange={(event) => setForm((atual) => ({ ...atual, responsavel: event.target.value }))} maxLength={150} fullWidth />
+                <label className="block text-sm text-foreground mb-1">Responsável familiar *</label>
+                <select required value={form.responsavelMoradorId} onChange={(event) => {
+                  const selecionado = moradores.find((morador) => String(morador.id) === event.target.value);
+                  setForm((atual) => ({ ...atual, responsavelMoradorId: event.target.value, responsavel: selecionado?.nome ?? '' }));
+                }} className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm">
+                  <option value="">Selecione um morador cadastrado</option>
+                  {moradores.filter((morador) => !morador.familia || String(morador.familia) === String(familiaEditando?.id ?? '')).map((morador) => (
+                    <option key={morador.id} value={morador.id}>{morador.nome} · {morador.dataNascimento}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm text-foreground mb-1">Endereço</label>
