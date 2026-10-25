@@ -1,7 +1,7 @@
 const API_URL = 'https://gestao-comunidades-api.onrender.com/api';
 
 async function renovarToken(): Promise<string | null> {
-  const refresh = localStorage.getItem('sisgest_refresh');
+  const refresh = sessionStorage.getItem('sisgest_refresh');
 
   if (!refresh) {
     return null;
@@ -32,7 +32,7 @@ async function renovarToken(): Promise<string | null> {
       return null;
     }
 
-    localStorage.setItem(
+    sessionStorage.setItem(
       'sisgest_access',
       data.access
     );
@@ -60,7 +60,7 @@ async function apiFetch<T = unknown>(
   tentarRenovar = true
 ): Promise<T> {
 
-  const token = localStorage.getItem(
+  const token = sessionStorage.getItem(
     'sisgest_access'
   );
 
@@ -150,15 +150,15 @@ async function apiFetch<T = unknown>(
 
     } else {
 
-      localStorage.removeItem(
+      sessionStorage.removeItem(
         'sisgest_access'
       );
 
-      localStorage.removeItem(
+      sessionStorage.removeItem(
         'sisgest_refresh'
       );
 
-      localStorage.removeItem(
+      sessionStorage.removeItem(
         'sisgest_user'
       );
     }

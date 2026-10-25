@@ -76,7 +76,7 @@ export function AuthProvider({
   const [user, setUser] = useState<User | null>(() => {
     try {
       const savedUser =
-        localStorage.getItem('sisgest_user');
+        sessionStorage.getItem('sisgest_user');
 
       if (savedUser) {
         return JSON.parse(savedUser);
@@ -103,7 +103,7 @@ export function AuthProvider({
     try {
 
       const token =
-        localStorage.getItem('sisgest_access');
+        sessionStorage.getItem('sisgest_access');
 
       if (!token) {
         setUsers([]);
@@ -221,7 +221,7 @@ export function AuthProvider({
     try {
 
       const token =
-        localStorage.getItem('sisgest_access');
+        sessionStorage.getItem('sisgest_access');
 
       if (!token) {
 
@@ -337,7 +337,7 @@ export function AuthProvider({
     try {
 
       const token =
-        localStorage.getItem('sisgest_access');
+        sessionStorage.getItem('sisgest_access');
 
       if (!token) {
 
@@ -466,17 +466,17 @@ export function AuthProvider({
       const loginData =
         data as LoginResponse;
 
-      localStorage.setItem(
+      sessionStorage.setItem(
         'sisgest_access',
         loginData.access
       );
 
-      localStorage.setItem(
+      sessionStorage.setItem(
         'sisgest_refresh',
         loginData.refresh
       );
 
-      localStorage.setItem(
+      sessionStorage.setItem(
         'sisgest_user',
         JSON.stringify(loginData.user)
       );
@@ -521,15 +521,15 @@ export function AuthProvider({
 
   const logout = () => {
 
-    localStorage.removeItem(
+    sessionStorage.removeItem(
       'sisgest_access'
     );
 
-    localStorage.removeItem(
+    sessionStorage.removeItem(
       'sisgest_refresh'
     );
 
-    localStorage.removeItem(
+    sessionStorage.removeItem(
       'sisgest_user'
     );
 
