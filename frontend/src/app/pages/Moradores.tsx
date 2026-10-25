@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { useData } from '../components/contexts/DataContext';
+import { calcularIdade } from '../utils/morador';
 import { Plus, Search, Eye, Edit, Phone, Car } from 'lucide-react';
 
 const MESES = [
@@ -63,45 +64,6 @@ export function Moradores() {
     setAnoSelecionado('todos');
     setMesSelecionado('todos');
   };
-
-  const calcularIdade = (dataNascimento: string) => {
-  if (!dataNascimento) return null;
-
-  let nascimento: Date;
-
-  // Data no formato YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
-    const [ano, mes, dia] = dataNascimento.split('-').map(Number);
-    nascimento = new Date(ano, mes - 1, dia);
-  }
-  // Data no formato DD/MM/YYYY
-  else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataNascimento)) {
-    const [dia, mes, ano] = dataNascimento.split('/').map(Number);
-    nascimento = new Date(ano, mes - 1, dia);
-  }
-  else {
-    nascimento = new Date(dataNascimento);
-  }
-
-  if (isNaN(nascimento.getTime())) {
-    return null;
-  }
-
-  const hoje = new Date();
-
-  let idade = hoje.getFullYear() - nascimento.getFullYear();
-
-  const mes = hoje.getMonth() - nascimento.getMonth();
-
-  if (
-    mes < 0 ||
-    (mes === 0 && hoje.getDate() < nascimento.getDate())
-  ) {
-    idade--;
-  }
-
-  return idade;
-};
 
   return (
     <div className="space-y-6">
@@ -177,7 +139,7 @@ export function Moradores() {
                 <div className="flex-1">
                   <h3 className="text-foreground mb-1">{morador.nome}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {calcularIdade(morador.dataNascimento)} anos
+                    {calcularIdade(morador.dataNascimento) === null ? '—' : `${calcularIdade(morador.dataNascimento)} anos`}
                   </p>
                 </div>
                 <span

@@ -1,21 +1,24 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../components/contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
-import { Waves, TreePine, Eye, EyeOff } from 'lucide-react';
+import { Waves, TreePine, Eye, EyeOff, LoaderCircle } from 'lucide-react';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
+  const envioEmAndamento = useRef(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (envioEmAndamento.current) return;
     setErro('');
 
     if (!email || !senha) {
@@ -23,13 +26,21 @@ export function Login() {
       return;
     }
 
-    const result = await login(email, senha);
-
-if (result.success) {
-  navigate('/dashboard');
-} else {
-  setErro(result.error || 'Email ou senha incorretos');
-}
+    envioEmAndamento.current = true;
+    setCarregando(true);
+    try {
+      const result = await login(email, senha);
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setErro(result.error || 'Email ou senha incorretos');
+      }
+    } catch {
+      setErro('Não foi possível conectar ao servidor.');
+    } finally {
+      envioEmAndamento.current = false;
+      setCarregando(false);
+    }
   };
 
   return (
@@ -49,7 +60,7 @@ if (result.success) {
             <CardTitle>Acessar Sistema</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" aria-busy={carregando}>
               <Input
                 type="email"
                 label="Email"
@@ -78,8 +89,13 @@ if (result.success) {
                 </div>
               )}
 
-              <Button type="submit" fullWidth size="lg">
-                Entrar
+              <Button type="submit" fullWidth size="lg" disabled={carregando}>
+                {carregando ? (
+                  <span className="inline-flex items-center justify-center gap-2" aria-live="polite">
+                    <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+                    Entrando...
+                  </span>
+                ) : 'Entrar'}
               </Button>
             </form>
 

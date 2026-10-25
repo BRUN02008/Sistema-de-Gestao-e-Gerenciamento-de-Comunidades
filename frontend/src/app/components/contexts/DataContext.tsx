@@ -291,7 +291,7 @@ export function DataProvider({
   useEffect(() => {
     async function carregarMoradores() {
       try {
-       const data = (await api.get('/moradores/')) as Morador[];
+        const data = (await api.get('/moradores/')) as Array<Morador & { data_nascimento?: string; familia_detalhes?: { nome?: string } }>;
 
         /*
          * Converte os IDs do Django para string,
@@ -300,10 +300,10 @@ export function DataProvider({
         const moradoresApi: Morador[] = data.map((m) => ({
           ...m,
           id: String(m.id),
+          dataNascimento: m.data_nascimento ?? m.dataNascimento ?? '',
           familia: m.familia == null ? null : String(m.familia),
-          dataCadastro:
-            m.dataCadastro ||
-            new Date().toISOString().split('T')[0],
+          // A API não expõe data de cadastro; não inventar uma data para registros antigos.
+          dataCadastro: m.dataCadastro ?? '',
         }));
 
         setMoradores(moradoresApi);
@@ -620,6 +620,7 @@ useEffect(() => {
           ...m,
           ...data,
           id: String(data.id),
+          dataNascimento: (data as Morador & { data_nascimento?: string }).data_nascimento ?? m.dataNascimento,
           familia: data.familia == null ? null : String(data.familia),
           dataCadastro:
             data.dataCadastro ||
@@ -670,6 +671,7 @@ useEffect(() => {
           ...m,
           ...data,
           id: String(data.id),
+          dataNascimento: (data as Morador & { data_nascimento?: string }).data_nascimento ?? m.dataNascimento,
           familia: data.familia == null ? null : String(data.familia),
         };
 

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { Button } from '../components/Button';
 import { useData } from '../components/contexts/DataContext';
 import { toast } from 'sonner';
+import { calcularIdade } from '../utils/morador';
 import { ArrowLeft , Edit, Trash2 , Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon, HeartPulse, Car } from 'lucide-react';
 
 export function MoradorDetalhes() {
@@ -27,17 +28,6 @@ export function MoradorDetalhes() {
       </div>
     );
   }
-
-  const calcularIdade = (dataNascimento: string) => {
-    const hoje = new Date();
-    const nascimento = new Date(dataNascimento);
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const m = hoje.getMonth() - nascimento.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
-      idade--;
-    }
-    return idade;
-  };
 
   const handleExcluir = async () => {
   const confirmar = window.confirm(
@@ -134,10 +124,10 @@ export function MoradorDetalhes() {
                   <div className="p-4 bg-muted/30 rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">Data de Nascimento</p>
                     <p className="text-foreground">
-                      {new Date(morador.dataNascimento).toLocaleDateString('pt-BR')}
+                      {morador.dataNascimento ? new Date(`${morador.dataNascimento}T00:00:00`).toLocaleDateString('pt-BR') : '—'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {calcularIdade(morador.dataNascimento)} anos
+                      {calcularIdade(morador.dataNascimento) === null ? '—' : `${calcularIdade(morador.dataNascimento)} anos`}
                     </p>
                   </div>
 

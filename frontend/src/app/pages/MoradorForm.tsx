@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Card, CardContent, CardHeader } from '../components/Card';
 import { Button } from '../components/Button';
@@ -107,6 +107,20 @@ const [temVeiculo, setTemVeiculo] = useState(
 const [veiculo, setVeiculo] = useState(
   moradorExistente?.veiculo ?? { ...emptyVeiculo }
 );
+
+  // The moradores are fetched asynchronously; hydrate edit fields once the record arrives.
+  useEffect(() => {
+    if (!moradorExistente) return;
+    setFormData({
+      nome: moradorExistente.nome || '', dataNascimento: moradorExistente.dataNascimento || '',
+      cpf: moradorExistente.cpf || '', rg: moradorExistente.rg || '', familia: moradorExistente.familia || '',
+      telefone: moradorExistente.telefone || '', ocupacao: moradorExistente.ocupacao || '',
+      escolaridade: moradorExistente.escolaridade || '', endereco: moradorExistente.endereco || '',
+      status: moradorExistente.status || 'ativo', comorbidade: moradorExistente.comorbidade || '',
+    });
+    setTemVeiculo(Boolean(moradorExistente.veiculo));
+    setVeiculo(moradorExistente.veiculo ?? { ...emptyVeiculo });
+  }, [moradorExistente]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
