@@ -1,4 +1,8 @@
+import mimetypes
+import os
+from django.http import FileResponse
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from django.db import transaction
 from django.db.models import ProtectedError
 from django.contrib.auth import authenticate
@@ -138,6 +142,20 @@ class DocumentoViewSet(viewsets.ModelViewSet):
     queryset = Documento.objects.select_related("morador").all()
     serializer_class = DocumentoSerializer
     permission_classes = [IsAdminTecnicoOrReadOnly]
+
+    @action(detail=True, methods=["get"], url_path="arquivo")
+    def arquivo(self, request, pk=None):
+        documento = self.get_object()
+        if not documento.arquivo or not documento.arquivo.name:
+            return Response({"detail": "Este documento não possui arquivo anexado."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            arquivo = documento.arquivo.open("rb")
+        except (FileNotFoundError, OSError, ValueError):
+            return Response({"detail": "O arquivo anexado não está disponível no armazenamento."}, status=status.HTTP_404_NOT_FOUND)
+
+        nome = os.path.basename(documento.arquivo.name)
+        content_type = mimetypes.guess_type(nome)[0] or "application/octet-stream"
+        return FileResponse(arquivo, as_attachment=False, filename=nome, content_type=content_type)
 
 
 class AssinaturaDocumentoViewSet(viewsets.ModelViewSet):

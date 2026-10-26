@@ -21,6 +21,7 @@ import {
 } from '../../data/mockData';
 
 import { api } from '../../../services/api';
+import { useAuth } from './AuthContext';
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -275,6 +276,7 @@ export function DataProvider({
 }: {
   children: ReactNode;
 }) {
+  const { user } = useAuth();
   /*
    * ============================================================
    * MORADORES
@@ -289,15 +291,30 @@ export function DataProvider({
   
 
   useEffect(() => {
+    let vigente = true;
+    if (!user) {
+      setMoradores([]);
+      setMoradoresErro(false);
+      setMoradoresCarregando(false);
+      return () => { vigente = false; };
+    }
+    setMoradoresCarregando(true);
+    setMoradoresErro(false);
     async function carregarMoradores() {
       try {
-        const data = (await api.get('/moradores/')) as Array<Morador & { data_nascimento?: string; familia_detalhes?: { nome?: string } }>;
+        const response = await api.get('/moradores/');
+        const data = Array.isArray(response)
+          ? response
+          : typeof response === 'object' && response !== null && 'results' in response && Array.isArray(response.results)
+            ? response.results
+            : null;
+        if (!data) throw new Error('A API retornou uma lista de moradores em formato inesperado.');
 
         /*
          * Converte os IDs do Django para string,
          * mantendo compatibilidade com o frontend.
          */
-        const moradoresApi: Morador[] = data.map((m) => ({
+        const moradoresApi: Morador[] = (data as Array<Morador & { data_nascimento?: string; familia_detalhes?: { nome?: string } }>).map((m) => ({
           ...m,
           id: String(m.id),
           dataNascimento: m.data_nascimento ?? m.dataNascimento ?? '',
@@ -306,6 +323,7 @@ export function DataProvider({
           dataCadastro: m.dataCadastro ?? '',
         }));
 
+        if (!vigente) return;
         setMoradores(moradoresApi);
         setMoradoresErro(false);
 
@@ -315,6 +333,7 @@ export function DataProvider({
          */
         save('moradores', moradoresApi);
       } catch (error) {
+        if (!vigente) return;
         console.error(
           'Erro ao carregar moradores do Django:',
           error
@@ -327,12 +346,13 @@ export function DataProvider({
         setMoradores(load('moradores', []));
         setMoradoresErro(true);
       } finally {
-        setMoradoresCarregando(false);
+        if (vigente) setMoradoresCarregando(false);
       }
     }
 
-    carregarMoradores();
-  }, []);
+    void carregarMoradores();
+    return () => { vigente = false; };
+  }, [user]);
 
   /*
    * ============================================================

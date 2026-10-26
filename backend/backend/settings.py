@@ -146,6 +146,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://gestao-de-comunidades.vercel.app",
 ]
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

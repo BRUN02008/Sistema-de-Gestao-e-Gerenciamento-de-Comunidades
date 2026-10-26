@@ -226,6 +226,46 @@ async function apiFetch<T = unknown>(
   return data as T;
 }
 
+async function obterArquivoDocumento(documentId: string): Promise<{ blob: Blob; filename: string }> {
+  const url = `${API_URL}/documentos/${encodeURIComponent(documentId)}/arquivo/`;
+  let token = sessionStorage.getItem('sisgest_access');
+  const request = () => fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+  let response = await request();
+  if (response.status === 401) {
+    token = await renovarToken();
+    if (token) response = await request();
+  }
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const error = await response.json() as { detail?: string };
+      detail = error.detail ?? '';
+    } catch { /* Resposta sem JSON. */ }
+    throw new Error(detail || (response.status === 404 ? 'O arquivo deste documento não foi encontrado.' : 'Não foi possível acessar o documento. Verifique seu acesso e tente novamente.'));
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const encodedName = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  const regularName = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+  let responseName = regularName;
+  if (encodedName) {
+    try { responseName = decodeURIComponent(encodedName); } catch { responseName = encodedName; }
+  }
+  return { blob: await response.blob(), filename: responseName || 'documento' };
+}
+
+async function baixarDocumento(documentId: string, fallbackName: string): Promise<void> {
+  const { blob, filename } = await obterArquivoDocumento(documentId);
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = filename === 'documento' ? fallbackName || filename : filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
 
 /*
  * ============================================================
@@ -234,6 +274,9 @@ async function apiFetch<T = unknown>(
  */
 
 export const api = {
+
+  getDocumentBlob: obterArquivoDocumento,
+  download: baixarDocumento,
 
   get: (
     endpoint: string

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -14,6 +14,7 @@ import { useData } from '../components/contexts/DataContext';
 import { Plus, Search, Download, Eye, FileText, File, Lock, X, Trash2, PenLine, CheckCircle2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../components/contexts/AuthContext';
+import { api } from '../../services/api';
 
 const TIPO_LABELS: Record<string, string> = {
   certidao: 'Certidão', declaracao: 'Declaração', relatorio: 'Relatório', outro: 'Outro'
@@ -69,6 +70,10 @@ export function Documentos() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [viewDoc, setViewDoc] = useState<Documento | null>(null);
+  const [arquivoPreviewUrl, setArquivoPreviewUrl] = useState('');
+  const [arquivoPreviewTipo, setArquivoPreviewTipo] = useState('');
+  const [arquivoPreviewCarregando, setArquivoPreviewCarregando] = useState(false);
+  const [arquivoPreviewErro, setArquivoPreviewErro] = useState('');
   const [signMode, setSignMode] = useState(false);
   const [signedDocs, setSignedDocs] = useState<Record<string, { assinatura: string; assinadoPor: string; dataAssinatura: string }>>(() => {
     try { return JSON.parse(localStorage.getItem('sisgest_assinaturas') || '{}'); } catch { return {}; }
@@ -78,6 +83,38 @@ export function Documentos() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+
+  useEffect(() => {
+    if (!viewDoc) {
+      setArquivoPreviewUrl('');
+      setArquivoPreviewTipo('');
+      setArquivoPreviewErro('');
+      return;
+    }
+    let ativo = true;
+    let objectUrl = '';
+    setArquivoPreviewCarregando(true);
+    setArquivoPreviewErro('');
+    setArquivoPreviewUrl('');
+    void api.getDocumentBlob(viewDoc.id).then(({ blob }) => {
+      if (!ativo) return;
+      objectUrl = URL.createObjectURL(blob);
+      setArquivoPreviewUrl(objectUrl);
+      const extensao = viewDoc.arquivo.toLowerCase().split(/[?#]/)[0].split('.').pop();
+      const tipo = blob.type || (extensao === 'pdf' ? 'application/pdf' : ['jpg', 'jpeg', 'png'].includes(extensao ?? '') ? 'image/' + (extensao === 'jpg' ? 'jpeg' : extensao) : '');
+      setArquivoPreviewTipo(tipo);
+    }).catch((error: unknown) => {
+      if (!ativo) return;
+      console.error('Erro ao carregar anexo do documento:', error);
+      setArquivoPreviewErro(error instanceof Error ? error.message : 'Não foi possível carregar o anexo.');
+    }).finally(() => {
+      if (ativo) setArquivoPreviewCarregando(false);
+    });
+    return () => {
+      ativo = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [viewDoc]);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
   const saveAssinaturas = (updated: typeof signedDocs) => {
@@ -314,6 +351,15 @@ export function Documentos() {
     setHasDrawn(false);
   };
 
+  const handleDownload = async (documento: Documento) => {
+    try {
+      await api.download(documento.id, documento.titulo);
+    } catch (error) {
+      console.error('Erro ao baixar documento:', error);
+      toast.error(error instanceof Error ? error.message : 'Não foi possível baixar o documento.');
+    }
+  };
+
   const getTipoLabel = (tipo: string) => TIPO_LABELS[tipo] || tipo;
   const getDocumentContent = (doc: Documento) => {
   const morador = moradores.find(m => m.id === doc.moradorId);
@@ -520,15 +566,7 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
     </button>
   )}
 
-  <button
-    onClick={() => {
-  const link = document.createElement('a');
-  link.href = documento.arquivo;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  link.download = documento.arquivo.split('/').pop() || documento.titulo;
-  link.click();
-}}
+  <button type="button" onClick={() => void handleDownload(documento)}
     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted transition-colors"
   >
     <Download size={13} /> Baixar
@@ -696,15 +734,7 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
                     <span className="hidden sm:inline">Assinar</span>
                   </button>
                 )}
-                <button
-                  onClick={() => {
-  const link = document.createElement('a');
-  link.href = viewDoc.arquivo;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  link.download = viewDoc.arquivo.split('/').pop() || viewDoc.titulo;
-  link.click();
-}}
+                <button type="button" onClick={() => void handleDownload(viewDoc)}
                   className="p-2 border border-border rounded-lg text-xs hover:bg-muted transition-colors"
                   title="Baixar"
                 >
@@ -735,21 +765,23 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
                 <pre className="text-gray-800 text-sm font-sans leading-relaxed whitespace-pre-wrap mb-6">
   {getDocumentContent(viewDoc)}
 </pre>
-                {viewDoc.arquivo.toLowerCase().match(/\.(jpg|jpeg|png)$/) ? (
-  <div className="flex justify-center">
-    <img
-      src={viewDoc.arquivo}
-      alt={viewDoc.titulo}
-      className="max-w-full max-h-[60vh] object-contain rounded-lg"
-    />
-  </div>
-) : (
-  <iframe
-    src={viewDoc.arquivo}
-    title={viewDoc.titulo}
-    className="w-full h-[60vh] rounded-lg border border-gray-200"
-  />
-)}
+                {arquivoPreviewCarregando && (
+                  <p className="text-center text-sm text-muted-foreground py-6" role="status">Carregando anexo...</p>
+                )}
+                {arquivoPreviewErro && (
+                  <p className="text-center text-sm text-destructive py-6" role="alert">{arquivoPreviewErro}</p>
+                )}
+                {!arquivoPreviewCarregando && !arquivoPreviewErro && arquivoPreviewUrl && arquivoPreviewTipo.startsWith('image/') && (
+                  <div className="flex justify-center">
+                    <img src={arquivoPreviewUrl} alt={viewDoc.titulo} className="max-w-full max-h-[60vh] object-contain rounded-lg" />
+                  </div>
+                )}
+                {!arquivoPreviewCarregando && !arquivoPreviewErro && arquivoPreviewUrl && arquivoPreviewTipo === 'application/pdf' && (
+                  <iframe src={arquivoPreviewUrl} title={viewDoc.titulo} className="w-full h-[60vh] rounded-lg border border-gray-200" />
+                )}
+                {!arquivoPreviewCarregando && !arquivoPreviewErro && arquivoPreviewUrl && !arquivoPreviewTipo.startsWith('image/') && arquivoPreviewTipo !== 'application/pdf' && (
+                  <p className="text-center text-sm text-muted-foreground py-6">A pré-visualização não está disponível para este formato. Use o botão Baixar para abrir o arquivo.</p>
+                )}
 
                 {/* Signature area */}
                 <div className="mt-8 pt-4 border-t border-gray-200">
