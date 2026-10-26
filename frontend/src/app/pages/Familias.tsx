@@ -218,7 +218,6 @@ export function Familias() {
                   <dl className="space-y-2 text-sm mb-4">
                     <div><dt className="text-xs text-muted-foreground">Responsável familiar</dt><dd className="text-foreground">{familia.responsavel || 'Não informado'}</dd></div>
                     <div><dt className="text-xs text-muted-foreground">Endereço</dt><dd className="text-foreground">{familia.endereco || 'Não informado'}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Identificação</dt><dd className="text-foreground">{familia.id}</dd></div>
                   </dl>
 
                   <div className="border-t border-border pt-3 mb-4">
