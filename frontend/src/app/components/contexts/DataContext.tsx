@@ -23,6 +23,17 @@ import {
 import { api } from '../../../services/api';
 import { useAuth } from './AuthContext';
 
+function familiaIdParaApi(familia: string | null | undefined): number | null {
+  const valor = familia?.trim();
+  if (!valor) return null;
+
+  const id = Number(valor);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new Error('Selecione uma família válida.');
+  }
+  return id;
+}
+
 function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(`sisgest_${key}`);
@@ -451,9 +462,16 @@ export function DataProvider({
     );
 
   useEffect(() => {
+    let vigente = true;
+    if (!user) return () => { vigente = false; };
     async function carregarDocumentos() {
       try {
-        const data = await api.get('/documentos/');
+        const response = await api.get('/documentos/');
+        const data = Array.isArray(response)
+          ? response
+          : typeof response === 'object' && response !== null && 'results' in response && Array.isArray(response.results)
+            ? response.results
+            : null;
         if (!Array.isArray(data)) {
           throw new Error('Resposta inválida ao carregar documentos.');
         }
@@ -465,18 +483,21 @@ export function DataProvider({
           morador: documento.morador_detalhes?.nome ?? '',
           moradorId: String(documento.morador),
           dataEmissao: documento.data_emissao,
-          arquivo: documento.arquivo,
+          arquivo: documento.arquivo ?? '',
         }));
 
+        if (!vigente) return;
         setDocumentos(documentosApi);
         save('documentos', documentosApi);
       } catch (error) {
+        if (!vigente) return;
         console.error('Erro ao carregar documentos do Django; mantendo apenas o cache local sem registros de demonstração:', error);
       }
     }
 
-    carregarDocumentos();
-  }, []);
+    void carregarDocumentos();
+    return () => { vigente = false; };
+  }, [user]);
 
   const [dependentes] =
     useState<Dependente[]>(() =>
@@ -654,7 +675,7 @@ useEffect(() => {
             data_nascimento: m.dataNascimento,
             cpf: m.cpf,
             rg: m.rg,
-            familia: m.familia ? Number(m.familia) : null,
+            familia: familiaIdParaApi(m.familia),
             telefone: m.telefone,
             ocupacao: m.ocupacao,
             escolaridade: m.escolaridade,
@@ -705,7 +726,7 @@ useEffect(() => {
             data_nascimento: m.dataNascimento,
             cpf: m.cpf,
             rg: m.rg,
-            familia: m.familia ? Number(m.familia) : null,
+            familia: familiaIdParaApi(m.familia),
             telefone: m.telefone,
             ocupacao: m.ocupacao,
             escolaridade: m.escolaridade,

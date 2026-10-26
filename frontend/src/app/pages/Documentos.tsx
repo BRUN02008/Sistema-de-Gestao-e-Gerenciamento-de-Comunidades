@@ -89,6 +89,7 @@ export function Documentos() {
       setArquivoPreviewUrl('');
       setArquivoPreviewTipo('');
       setArquivoPreviewErro('');
+      setArquivoPreviewCarregando(false);
       return;
     }
     let ativo = true;
@@ -100,7 +101,7 @@ export function Documentos() {
       if (!ativo) return;
       objectUrl = URL.createObjectURL(blob);
       setArquivoPreviewUrl(objectUrl);
-      const extensao = viewDoc.arquivo.toLowerCase().split(/[?#]/)[0].split('.').pop();
+      const extensao = (viewDoc.arquivo ?? '').toLowerCase().split(/[?#]/)[0].split('.').pop();
       const tipo = blob.type || (extensao === 'pdf' ? 'application/pdf' : ['jpg', 'jpeg', 'png'].includes(extensao ?? '') ? 'image/' + (extensao === 'jpg' ? 'jpeg' : extensao) : '');
       setArquivoPreviewTipo(tipo);
     }).catch((error: unknown) => {
@@ -762,9 +763,11 @@ Documento gerado pelo Sistema SisGest — Gerenciamento Comunitário.`;
                 </div>
 
                 {/* Body */}
-                <pre className="text-gray-800 text-sm font-sans leading-relaxed whitespace-pre-wrap mb-6">
-  {getDocumentContent(viewDoc)}
-</pre>
+                {!arquivoPreviewCarregando && !arquivoPreviewErro && arquivoPreviewUrl && (
+                  <pre className="text-gray-800 text-sm font-sans leading-relaxed whitespace-pre-wrap mb-6">
+                    {getDocumentContent(viewDoc)}
+                  </pre>
+                )}
                 {arquivoPreviewCarregando && (
                   <p className="text-center text-sm text-muted-foreground py-6" role="status">Carregando anexo...</p>
                 )}
