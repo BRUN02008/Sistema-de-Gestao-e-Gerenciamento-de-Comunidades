@@ -103,6 +103,7 @@ interface DataContextType {
   moradores: Morador[];
   moradoresCarregando: boolean;
   moradoresErro: boolean;
+  recarregarMoradores: () => void;
   addMorador: (
     
     m: Omit<Morador, 'id' | 'dataCadastro'>
@@ -113,6 +114,9 @@ interface DataContextType {
 
 // Famílias
 familias: Familia[];
+familiasCarregando: boolean;
+familiasErro: boolean;
+recarregarFamilias: () => void;
 addFamilia: (
   f: Omit<Familia, 'id'>
 ) => Promise<Familia>;
@@ -288,6 +292,8 @@ export function DataProvider({
   const [moradores, setMoradores] = useState<Morador[]>([]);
   const [moradoresCarregando, setMoradoresCarregando] = useState(true);
   const [moradoresErro, setMoradoresErro] = useState(false);
+  const [moradoresVersao, setMoradoresVersao] = useState(0);
+  const recarregarMoradores = useCallback(() => setMoradoresVersao((versao) => versao + 1), []);
   
 
   useEffect(() => {
@@ -352,7 +358,7 @@ export function DataProvider({
 
     void carregarMoradores();
     return () => { vigente = false; };
-  }, [user]);
+  }, [user, moradoresVersao]);
 
   /*
    * ============================================================
@@ -363,33 +369,56 @@ export function DataProvider({
    */
 
   const [familias, setFamilias] = useState<Familia[]>([]);
+  const [familiasCarregando, setFamiliasCarregando] = useState(true);
+  const [familiasErro, setFamiliasErro] = useState(false);
+  const [familiasVersao, setFamiliasVersao] = useState(0);
+  const recarregarFamilias = useCallback(() => setFamiliasVersao((versao) => versao + 1), []);
 
-useEffect(() => {
+ useEffect(() => {
+   let vigente = true;
+   if (!user) {
+     setFamilias([]);
+     setFamiliasErro(false);
+     setFamiliasCarregando(false);
+     return () => { vigente = false; };
+   }
+   setFamiliasCarregando(true);
+   setFamiliasErro(false);
   async function carregarFamilias() {
     try {
-      const data = await api.get('/familias/');
+       const response = await api.get('/familias/');
+       const data = Array.isArray(response)
+         ? response
+         : typeof response === 'object' && response !== null && 'results' in response && Array.isArray(response.results)
+           ? response.results
+           : null;
+       if (!data) throw new Error('A API retornou uma lista de famílias em formato inesperado.');
 
-      if (Array.isArray(data)) {
-        setFamilias(data.map((f: Familia & { responsavel_morador_id?: number | string | null }) => ({
+       if (vigente) {
+         setFamilias(data.map((f: Familia & { responsavel_morador_id?: number | string | null }) => ({
           ...f,
           id: String(f.id),
           responsavelMoradorId: f.responsavel_morador_id == null ? null : String(f.responsavel_morador_id),
         })));
-      } else {
-        setFamilias([]);
+         setFamiliasErro(false);
       }
     } catch (error) {
+       if (!vigente) return;
       console.error(
         'Erro ao carregar famílias do Django:',
         error
       );
 
-      setFamilias([]);
+       setFamilias([]);
+       setFamiliasErro(true);
+     } finally {
+       if (vigente) setFamiliasCarregando(false);
     }
   }
 
-  carregarFamilias();
-}, []);
+   void carregarFamilias();
+   return () => { vigente = false; };
+ }, [user, familiasVersao]);
 
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [atividadesCarregando, setAtividadesCarregando] = useState(true);
@@ -1349,11 +1378,15 @@ const deleteOficio = useCallback(
         moradores,
         moradoresCarregando,
         moradoresErro,
+        recarregarMoradores,
         addMorador,
         updateMorador,
         deleteMorador,
 
         familias,
+        familiasCarregando,
+        familiasErro,
+        recarregarFamilias,
         addFamilia,
         updateFamilia,
         deleteFamilia,

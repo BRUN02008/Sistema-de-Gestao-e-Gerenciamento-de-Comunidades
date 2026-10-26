@@ -10,8 +10,14 @@ export function MoradorDetalhes() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const { moradores, documentos, deleteMorador } = useData();
+  const { moradores, familias, documentos, deleteMorador } = useData();
   const morador = moradores.find((m) => m.id === id);
+  const familiaDoMorador = morador?.familia
+    ? familias.find((familia) => String(familia.id) === String(morador.familia))
+    : undefined;
+  const nomeFamilia = !morador?.familia
+    ? 'Não vinculado'
+    : familiaDoMorador?.nome ?? 'Família não localizada';
 
   if (!morador) {
     return (
@@ -70,7 +76,7 @@ export function MoradorDetalhes() {
         </h1>
 
         <p className="text-muted-foreground text-xs md:text-sm">
-          Perfil do Morador · {morador.familia}
+          Perfil do Morador · {nomeFamilia}
         </p>
       </div>
     </div>
@@ -164,7 +170,7 @@ export function MoradorDetalhes() {
                     <MapPin size={16} className="text-primary" />
                     <p className="text-sm text-muted-foreground">Família</p>
                   </div>
-                  <p className="text-foreground">{morador.familia}</p>
+                  <p className="text-foreground">{nomeFamilia}</p>
                 </div>
 
                 <div className="p-4 bg-muted/30 rounded-lg">

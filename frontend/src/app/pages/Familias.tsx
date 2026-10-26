@@ -29,7 +29,7 @@ function mensagemDoErro(error: unknown): string {
 }
 
 export function Familias() {
-  const { familias, moradores, addFamilia, updateFamilia, deleteFamilia } = useData();
+  const { familias, familiasCarregando, familiasErro, recarregarFamilias, moradores, moradoresCarregando, moradoresErro, recarregarMoradores, addFamilia, updateFamilia, deleteFamilia } = useData();
   const [busca, setBusca] = useState('');
   const [form, setForm] = useState<FormFamilia>(formVazio);
   const [familiaEditando, setFamiliaEditando] = useState<Familia | null>(null);
@@ -37,6 +37,9 @@ export function Familias() {
   const [confirmarExclusaoId, setConfirmarExclusaoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erroNome, setErroNome] = useState('');
+  const moradoresElegiveis = moradoresErro ? [] : moradores.filter((morador) =>
+    !morador.familia || String(morador.familia) === String(familiaEditando?.id ?? '')
+  );
 
   const familiasFiltradas = familias.filter((familia) =>
     [familia.nome, familia.responsavel, String(familia.id)]
@@ -71,6 +74,14 @@ export function Familias() {
     const moradorResponsavel = moradores.find((morador) => String(morador.id) === form.responsavelMoradorId);
     if (!nome) {
       setErroNome('O nome da família é obrigatório.');
+      return;
+    }
+    if (moradoresCarregando || familiasCarregando) {
+      toast.error('Aguarde o carregamento dos moradores e das famílias.');
+      return;
+    }
+    if (moradoresErro || familiasErro) {
+      toast.error('Não foi possível validar os dados. Tente carregar novamente antes de salvar.');
       return;
     }
     if (!moradorResponsavel) {
@@ -261,15 +272,19 @@ export function Familias() {
               </div>
               <div>
                 <label className="block text-sm text-foreground mb-1">Responsável familiar *</label>
-                <select required value={form.responsavelMoradorId} onChange={(event) => {
+                <select required value={form.responsavelMoradorId} disabled={moradoresCarregando || familiasCarregando || moradoresErro || familiasErro || moradoresElegiveis.length === 0} onChange={(event) => {
                   const selecionado = moradores.find((morador) => String(morador.id) === event.target.value);
                   setForm((atual) => ({ ...atual, responsavelMoradorId: event.target.value, responsavel: selecionado?.nome ?? '' }));
                 }} className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm">
-                  <option value="">Selecione um morador cadastrado</option>
-                  {moradores.filter((morador) => !morador.familia || String(morador.familia) === String(familiaEditando?.id ?? '')).map((morador) => (
+                  <option value="">
+                    {moradoresCarregando || familiasCarregando ? 'Carregando moradores...' : moradoresErro ? 'Não foi possível carregar os moradores' : moradores.length === 0 ? 'Nenhum morador cadastrado' : moradoresElegiveis.length === 0 ? 'Nenhum morador elegível para esta família' : 'Selecione um morador cadastrado'}
+                  </option>
+                  {moradoresElegiveis.map((morador) => (
                     <option key={morador.id} value={morador.id}>{morador.nome} · {morador.dataNascimento}</option>
                   ))}
                 </select>
+                {moradoresErro && <div className="mt-2 flex items-center justify-between gap-2"><p className="text-xs text-destructive">Não foi possível carregar os moradores cadastrados.</p><button type="button" onClick={recarregarMoradores} className="text-xs text-primary underline">Tentar novamente</button></div>}
+                {familiasErro && <div className="mt-2 flex items-center justify-between gap-2"><p className="text-xs text-destructive">Não foi possível carregar as famílias.</p><button type="button" onClick={recarregarFamilias} className="text-xs text-primary underline">Tentar novamente</button></div>}
               </div>
               <div>
                 <label className="block text-sm text-foreground mb-1">Endereço</label>
