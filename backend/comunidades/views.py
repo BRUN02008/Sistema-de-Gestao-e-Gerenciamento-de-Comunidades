@@ -1,5 +1,7 @@
 import mimetypes
 import os
+import logging
+from botocore.exceptions import BotoCoreError, ClientError
 from django.http import FileResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -47,6 +49,8 @@ from .serializers import (
     RelatorioAtividadeSerializer
 )
 from django.contrib.auth import authenticate, get_user_model
+
+logger = logging.getLogger(__name__)
 class FamiliaViewSet(viewsets.ModelViewSet):
     serializer_class = FamiliaSerializer
     permission_classes = [IsAdminTecnicoOrReadOnly]
@@ -139,9 +143,46 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
 
 
 class DocumentoViewSet(viewsets.ModelViewSet):
-    queryset = Documento.objects.select_related("morador").all()
     serializer_class = DocumentoSerializer
     permission_classes = [IsAdminTecnicoOrReadOnly]
+
+    def get_queryset(self):
+        queryset = Documento.objects.select_related("morador")
+        user = self.request.user
+        if user.perfil.role in ["admin", "tecnico"]:
+            return queryset.all()
+        if user.perfil.role == "visualizador" and user.perfil.morador_id:
+            return queryset.filter(morador_id=user.perfil.morador_id)
+        return queryset.none()
+
+    def _schedule_file_cleanup(self, storage, name, documento_id):
+        if not name:
+            return
+
+        def remover_arquivo():
+            try:
+                storage.delete(name)
+            except Exception:
+                logger.error("Falha do storage ao remover anexo do documento id=%s", documento_id)
+
+        transaction.on_commit(remover_arquivo)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        arquivo_anterior = instance.arquivo.name
+        storage = instance.arquivo.storage
+        documento_id = instance.pk
+        super().perform_update(serializer)
+        arquivo_atual = serializer.instance.arquivo.name
+        if arquivo_anterior != arquivo_atual:
+            self._schedule_file_cleanup(storage, arquivo_anterior, documento_id)
+
+    def perform_destroy(self, instance):
+        storage = instance.arquivo.storage
+        arquivo_nome = instance.arquivo.name
+        documento_id = instance.pk
+        super().perform_destroy(instance)
+        self._schedule_file_cleanup(storage, arquivo_nome, documento_id)
 
     @action(detail=True, methods=["get"], url_path="arquivo")
     def arquivo(self, request, pk=None):
@@ -150,8 +191,17 @@ class DocumentoViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Este documento não possui arquivo anexado."}, status=status.HTTP_404_NOT_FOUND)
         try:
             arquivo = documento.arquivo.open("rb")
-        except (FileNotFoundError, OSError, ValueError):
-            return Response({"detail": "O arquivo anexado não está disponível no armazenamento."}, status=status.HTTP_404_NOT_FOUND)
+        except FileNotFoundError:
+            return Response({"detail": "O arquivo anexado não foi encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        except ClientError as error:
+            code = str(getattr(error, "response", {}).get("Error", {}).get("Code", ""))
+            if code in {"NoSuchKey", "NotFound", "404"}:
+                return Response({"detail": "O arquivo anexado não foi encontrado."}, status=status.HTTP_404_NOT_FOUND)
+            logger.error("Falha do storage ao abrir anexo de documento id=%s", documento.pk)
+            return Response({"detail": "O armazenamento de documentos está temporariamente indisponível."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except (BotoCoreError, OSError, ValueError):
+            logger.error("Falha do storage ao abrir anexo de documento id=%s", documento.pk)
+            return Response({"detail": "O armazenamento de documentos está temporariamente indisponível."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         nome = os.path.basename(documento.arquivo.name)
         content_type = mimetypes.guess_type(nome)[0] or "application/octet-stream"

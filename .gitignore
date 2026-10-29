@@ -11,3 +11,4 @@ backend/certs/
 backend/staticfiles/
 backend/backend/settings.py.backup
 !backend/certs/ca.pem
+.venv-r2-check/

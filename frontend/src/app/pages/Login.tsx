@@ -51,7 +51,7 @@ export function Login() {
             <Waves className="text-white" size={48} />
             <TreePine className="text-white" size={48} />
           </div>
-          <h1 className="text-white mb-2">Sistema de Gestão Comunitária</h1>
+          <h1 className="text-white mb-2">Gestão Comunitária</h1>
           <p className="text-white/80">Cachoeira do Castanho - Amazonas</p>
         </div>
 

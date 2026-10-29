@@ -308,6 +308,10 @@ class InvestimentoSerializer(serializers.ModelSerializer):
         
 class DocumentoSerializer(serializers.ModelSerializer):
 
+    # Retorna somente a chave do objeto, nunca uma URL pública/presigned.
+    # Os arquivos são recuperados pela action autenticada do viewset.
+    arquivo = serializers.FileField(use_url=False)
+
     morador_detalhes = MoradorSerializer(
         source="morador",
         read_only=True

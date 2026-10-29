@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -150,6 +151,65 @@ CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# R2 é opt-in para preservar o armazenamento local no desenvolvimento.
+R2_ENABLED = os.getenv("R2_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "").strip()
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "").strip()
+R2_REGION = os.getenv("R2_REGION", "auto").strip() or "auto"
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "").strip()
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "").strip()
+
+if R2_ENABLED:
+    r2_missing_settings = [
+        name for name, value in {
+            "R2_ENDPOINT_URL": R2_ENDPOINT_URL,
+            "R2_BUCKET_NAME": R2_BUCKET_NAME,
+            "R2_ACCESS_KEY_ID": R2_ACCESS_KEY_ID,
+            "R2_SECRET_ACCESS_KEY": R2_SECRET_ACCESS_KEY,
+        }.items() if not value
+    ]
+    if r2_missing_settings:
+        raise ImproperlyConfigured(
+            "R2_ENABLED está ativo, mas faltam variáveis obrigatórias: "
+            + ", ".join(r2_missing_settings)
+        )
+    if (
+        not 3 <= len(R2_BUCKET_NAME) <= 63
+        or not R2_BUCKET_NAME[0].isalnum()
+        or not R2_BUCKET_NAME[-1].isalnum()
+        or not all(char in "abcdefghijklmnopqrstuvwxyz0123456789-" for char in R2_BUCKET_NAME)
+    ):
+        raise ImproperlyConfigured(
+            "R2_BUCKET_NAME deve conter de 3 a 63 caracteres ASCII minúsculos, "
+            "números ou hífens, começando e terminando com letra ou número."
+        )
+
+    default_storage = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": R2_BUCKET_NAME,
+            "endpoint_url": R2_ENDPOINT_URL,
+            "region_name": R2_REGION,
+            "access_key": R2_ACCESS_KEY_ID,
+            "secret_key": R2_SECRET_ACCESS_KEY,
+            "addressing_style": "path",
+            "default_acl": None,
+            "querystring_auth": True,
+            "file_overwrite": False,
+        },
+    }
+else:
+    default_storage = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    }
+
+STORAGES = {
+    "default": default_storage,
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 
 REST_FRAMEWORK = {
