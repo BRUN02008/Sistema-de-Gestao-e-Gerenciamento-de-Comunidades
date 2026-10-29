@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { useData } from '../components/contexts/DataContext';
 import { toast } from 'sonner';
 import { calcularIdade } from '../utils/morador';
+import { formatDatePtBr } from '../utils/formatters';
 import { ArrowLeft , Edit, Trash2 , Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, User as UserIcon, HeartPulse, Car } from 'lucide-react';
 
 export function MoradorDetalhes() {
@@ -200,7 +201,7 @@ export function MoradorDetalhes() {
                     <p className="text-sm text-muted-foreground">Data de Cadastro</p>
                   </div>
                   <p className="text-foreground">
-                    {new Date(morador.dataCadastro).toLocaleDateString('pt-BR')}
+                    {formatDatePtBr(morador.dataCadastro)}
                   </p>
                 </div>
               </div>

@@ -2,6 +2,28 @@ export function onlyDigits(value: string): string {
   return value.replace(/[^0-9]/g, '');
 }
 
+/** Formats backend dates without shifting date-only values across time zones. */
+export function formatDatePtBr(value?: string | number | null): string {
+  if (value === null || value === undefined || value === '') return 'NÃ£o informado';
+  if (typeof value === 'string') {
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    const brazilian = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+    const parts = dateOnly
+      ? [Number(dateOnly[1]), Number(dateOnly[2]), Number(dateOnly[3])]
+      : brazilian
+        ? [Number(brazilian[3]), Number(brazilian[2]), Number(brazilian[1])]
+        : null;
+    if (parts) {
+      const [year, month, day] = parts;
+      const date = new Date(year, month - 1, day);
+      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return 'NÃ£o informado';
+      return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+    }
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'NÃ£o informado' : date.toLocaleDateString('pt-BR');
+}
+
 export function formatCpf(value: string): string {
   const digits = onlyDigits(value).slice(0, 11);
   return digits

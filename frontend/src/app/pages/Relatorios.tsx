@@ -102,6 +102,8 @@ export function Relatorios() {
   const [relForm, setRelForm] = useState(emptyRelatorio);
   const [relEditId, setRelEditId] = useState<string | null>(null);
   const [relErrors, setRelErrors] = useState<Record<string, string>>({});
+  const [relSaving, setRelSaving] = useState(false);
+  const relSubmitLock = useRef(false);
   const [relViewId, setRelViewId] = useState<string | null>(null);
   const [relDeleteId, setRelDeleteId] = useState<string | null>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
@@ -226,8 +228,11 @@ export function Relatorios() {
 
   const handleRelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (relSubmitLock.current) return;
     const errs = validateRel();
     if (Object.keys(errs).length) { setRelErrors(errs); return; }
+    relSubmitLock.current = true;
+    setRelSaving(true);
     try {
     if (relEditId) {
       const existing = relatorios.find(r => r.id === relEditId)!;
@@ -240,6 +245,9 @@ export function Relatorios() {
     setRelModal(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o relatório.');
+    } finally {
+      relSubmitLock.current = false;
+      setRelSaving(false);
     }
   };
 
@@ -649,14 +657,14 @@ export function Relatorios() {
 
       {/* Modal Relatório */}
       {relModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setRelModal(false)} />
-          <div className="relative bg-card rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-border">
+          <div className="relative bg-card rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl max-h-[calc(100dvh-0.5rem)] sm:max-h-[92vh] flex flex-col overflow-y-auto">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border sticky top-0 bg-card z-10 shrink-0">
               <h2 className="text-foreground">{relEditId ? 'Editar Relatório' : 'Novo Relatório de Atividade'}</h2>
               <button onClick={() => setRelModal(false)} className="p-2 hover:bg-muted rounded-lg"><X size={20} className="text-muted-foreground" /></button>
             </div>
-            <form onSubmit={handleRelSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleRelSubmit} className="p-4 sm:p-6 space-y-4" aria-busy={relSaving}>
               <div>
                 <label className="block text-sm text-foreground mb-1">Título *</label>
                 <input type="text" value={relForm.titulo} onChange={e => setRelForm(p => ({ ...p, titulo: e.target.value }))}
@@ -664,7 +672,7 @@ export function Relatorios() {
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
                 {relErrors.titulo && <p className="text-xs text-destructive mt-1">{relErrors.titulo}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-foreground mb-1">Data *</label>
                   <input type="date" value={relForm.data} onChange={e => setRelForm(p => ({ ...p, data: e.target.value }))}
@@ -689,7 +697,7 @@ export function Relatorios() {
                 />
                 <p className="text-xs text-muted-foreground -mt-3">A lista usa moradores cadastrados. Administradores que também são moradores aparecem uma única vez; contas sem cadastro de morador não são criadas automaticamente.</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-foreground mb-1">Categoria</label>
                   <input type="text" value={relForm.categoria} onChange={e => setRelForm(p => ({ ...p, categoria: e.target.value }))}
@@ -731,9 +739,9 @@ export function Relatorios() {
                 <input ref={imgInputRef} type="file" accept="image/*" multiple onChange={handleAddImages} className="hidden" />
                 <p className="text-xs text-muted-foreground">Máx. 2MB por foto. Formatos: JPG, PNG, WEBP</p>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setRelModal(false)} className="flex-1 px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                <button type="button" disabled={relSaving} onClick={() => setRelModal(false)} className="flex-1 px-4 py-2 min-h-11 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">Cancelar</button>
+                <button type="submit" disabled={relSaving} className="flex-1 px-4 py-2 min-h-11 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
                   <Plus size={16} /> {relEditId ? 'Salvar Alterações' : 'Registrar Relatório'}
                 </button>
               </div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Plus, Trash2, User, Shield, Wrench, Eye, AlertCircle, CheckCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { X, Plus, Trash2, User, Shield, Wrench, Eye, AlertCircle, CheckCircle, LoaderCircle } from 'lucide-react';
 import { useAuth, type UserRole } from '../components/contexts/AuthContext';
 import { useData } from '../components/contexts/DataContext';
 import { toast } from 'sonner';
@@ -46,6 +46,10 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const submitLock = useRef(false);
+  const deleteLock = useRef(false);
 
   const { moradores, familias } = useData();
   const moradorSelecionado = moradores.find(m => m.id === form.moradorId);
@@ -67,12 +71,16 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
 
+    submitLock.current = true;
+    setSaving(true);
+    try {
     const result = await addUser({
       email: form.email,
       senha: form.senha,
@@ -96,9 +104,19 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
     } else {
       setErrors({ email: result.error || 'Erro ao cadastrar' });
     }
+    } catch {
+      setErrors({ email: 'NÃ£o foi possÃ­vel cadastrar o usuÃ¡rio. Tente novamente.' });
+    } finally {
+      submitLock.current = false;
+      setSaving(false);
+    }
   };
 
   const handleRemove = async (id: string) => {
+    if (deleteLock.current) return;
+    deleteLock.current = true;
+    setDeleting(id);
+    try {
     const result = await removeUser(id);
     if (result.success) {
       toast.success('Usuário removido');
@@ -106,6 +124,10 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
     } else {
       toast.error(result.error);
       setConfirmDelete(null);
+    }
+    } finally {
+      deleteLock.current = false;
+      setDeleting(null);
     }
   };
 
@@ -115,13 +137,13 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="relative bg-card rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="relative bg-card rounded-xl shadow-2xl w-full max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div>
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-border shrink-0">
+          <div className="min-w-0">
             <h2 className="text-foreground">Gerenciar Usuários</h2>
             <p className="text-sm text-muted-foreground">{users.length} usuário(s) cadastrado(s)</p>
           </div>
@@ -131,10 +153,10 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-border">
+        <div className="flex border-b border-border shrink-0">
           <button
             onClick={() => setTab('lista')}
-            className={`flex-1 px-6 py-3 text-sm transition-colors ${
+            className={`flex-1 px-2 sm:px-6 py-3 text-xs sm:text-sm transition-colors ${
               tab === 'lista'
                 ? 'border-b-2 border-primary text-primary'
                 : 'text-muted-foreground hover:text-foreground'
@@ -144,7 +166,7 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
           </button>
           <button
             onClick={() => setTab('novo')}
-            className={`flex-1 px-6 py-3 text-sm transition-colors flex items-center justify-center gap-2 ${
+            className={`flex-1 px-2 sm:px-6 py-3 text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 ${
               tab === 'novo'
                 ? 'border-b-2 border-primary text-primary'
                 : 'text-muted-foreground hover:text-foreground'
@@ -158,34 +180,34 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
         <div className="flex-1 overflow-y-auto">
           {/* Lista */}
           {tab === 'lista' && (
-            <div className="p-6 space-y-3">
+            <div className="p-3 sm:p-6 space-y-3">
               {users.map((account) => {
                 const cfg = ROLE_CONFIG[account.user.role];
                 const isMe = account.user.id === currentUser?.id;
                 return (
                   <div
                     key={account.user.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/20 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/20 transition-colors min-w-0"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                         <User className="text-muted-foreground" size={20} />
                       </div>
-                      <div>
+                      <div className="min-w-0 break-words">
                         <div className="flex items-center gap-2">
                           <p className="text-sm text-foreground">{account.user.nome}</p>
                           {isMe && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">você</span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{account.email}</p>
+                        <p className="text-xs text-muted-foreground break-all">{account.email}</p>
                         {account.user.familia && (
                           <p className="text-xs text-muted-foreground">{account.user.familia}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${cfg.color}`}>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full whitespace-nowrap ${cfg.color}`}>
                         {cfg.icon}
                         {cfg.label}
                       </span>
@@ -195,9 +217,10 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
                             <span className="text-xs text-muted-foreground">Confirmar?</span>
                             <button
                               onClick={() => handleRemove(account.user.id)}
+                              disabled={deleting === account.user.id}
                               className="text-xs px-2 py-1 bg-destructive text-white rounded-md hover:bg-destructive/80"
                             >
-                              Sim
+                              {deleting === account.user.id ? 'Excluindo...' : 'Sim'}
                             </button>
                             <button
                               onClick={() => setConfirmDelete(null)}
@@ -224,11 +247,11 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
 
           {/* Novo usuário */}
           {tab === 'novo' && (
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5" aria-busy={saving}>
               {/* Tipo de acesso */}
               <div>
                 <label className="block text-sm text-foreground mb-2">Tipo de acesso</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {(Object.keys(ROLE_CONFIG) as UserRole[]).map((role) => {
                     const cfg = ROLE_CONFIG[role];
                     return (
@@ -236,13 +259,13 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
                         key={role}
                         type="button"
                         onClick={() => field('role', role)}
-                        className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                        className={`p-3 min-w-0 rounded-lg border-2 text-left transition-colors ${
                           form.role === role
                             ? 'border-primary bg-primary/5'
                             : 'border-border hover:border-primary/50'
                         }`}
                       >
-                        <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full w-fit mb-2 ${cfg.color}`}>
+                        <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full max-w-full mb-2 ${cfg.color}`}>
                           {cfg.icon}
                           {cfg.label}
                         </div>
@@ -279,7 +302,7 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
                 {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Senha */}
                 <div>
                   <label className="block text-sm text-foreground mb-1">Senha</label>
@@ -352,20 +375,21 @@ export function GerenciarUsuarios({ onClose }: GerenciarUsuariosProps) {
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => { setTab('lista'); setForm(emptyForm); setErrors({}); }}
+                  disabled={saving}
                   className="flex-1 px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 min-h-11 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                 >
-                  <Plus size={16} />
-                  Cadastrar Usuário
+                  {saving ? <><LoaderCircle size={16} className="animate-spin" /> Cadastrando...</> : <><Plus size={16} /> Cadastrar Usuário</>}
                 </button>
               </div>
             </form>

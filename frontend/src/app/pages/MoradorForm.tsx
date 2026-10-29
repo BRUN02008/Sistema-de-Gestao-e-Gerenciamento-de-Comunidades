@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Card, CardContent, CardHeader } from '../components/Card';
 import { Button } from '../components/Button';
 import { useData } from '../components/contexts/DataContext';
-import { ArrowLeft, Save, User, Home, HeartPulse, Car, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Save, User, Home, HeartPulse, Car, ChevronDown, ChevronUp, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpf, isValidCpf, formatBrazilianPhone, isValidBrazilianPhone, formatRg } from '../utils/formatters';
 
@@ -123,6 +123,8 @@ const [veiculo, setVeiculo] = useState(
   }, [moradorExistente]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const submitLock = useRef(false);
 
   // Section expand state (for mobile UX)
   const [openSections, setOpenSections] = useState({ pessoal: true, comunitario: true, saude: true, veiculo: true });
@@ -146,6 +148,7 @@ const [veiculo, setVeiculo] = useState(
 
 const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -162,6 +165,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     };
 
     try {
+      submitLock.current = true;
+      setSaving(true);
       if (isEditing && moradorExistente) {
         await updateMorador({ ...moradorExistente, ...payload });
         toast.success('Morador atualizado com sucesso!');
@@ -181,6 +186,9 @@ const handleSubmit = async (e: React.FormEvent) => {
         }
       } catch { /* Mensagem de API não estruturada. */ }
       toast.error(mensagem);
+    } finally {
+      submitLock.current = false;
+      setSaving(false);
     }
   };
 
@@ -219,7 +227,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3" aria-busy={saving}>
 
         {/* ── Informações Pessoais ── */}
         <Card>
@@ -471,13 +479,13 @@ const handleSubmit = async (e: React.FormEvent) => {
         </Card>
 
         {/* Actions */}
-        <div className="flex gap-3 pb-6">
-          <Button type="button" variant="outline" onClick={() => navigate('/moradores')} className="flex-1 sm:flex-none">
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pb-6">
+          <Button type="button" variant="outline" disabled={saving} onClick={() => navigate('/moradores')} className="flex-1 sm:flex-none">
             Cancelar
           </Button>
-          <Button type="submit" className="flex-1">
-            <Save size={18} />
-            {isEditing ? 'Salvar Alterações' : 'Cadastrar Morador'}
+          <Button type="submit" disabled={saving} className="flex-1">
+            {saving ? <LoaderCircle size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? (isEditing ? 'Alterando...' : 'Cadastrando...') : (isEditing ? 'Salvar Alterações' : 'Cadastrar Morador')}
           </Button>
         </div>
       </form>

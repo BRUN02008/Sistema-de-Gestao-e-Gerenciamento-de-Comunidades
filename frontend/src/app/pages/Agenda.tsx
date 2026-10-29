@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card, CardContent } from '../components/Card';
 import { type EventoAgenda } from '../data/mockData';
-import { Plus, Calendar as CalendarIcon, Clock, MapPin, User, Filter, X, Trash2, Pencil } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Clock, MapPin, User, Filter, X, Trash2, Pencil, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../components/contexts/AuthContext';
 import { useData } from '../components/contexts/DataContext';
 import { Select } from '../components/Select';
@@ -67,6 +67,8 @@ export function Agenda() {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const submitLock = useRef(false);
 
   const textoNormalizado = (valor: string) => valor.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
   const chaveAtividade = (titulo: string, data: string, responsavel: string) =>
@@ -170,8 +172,11 @@ export function Agenda() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    submitLock.current = true;
+    setSaving(true);
     try {
     if (editId) {
       const existing = eventos.find(ev => ev.id === editId)!;
@@ -184,6 +189,9 @@ export function Agenda() {
     closeModal();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o evento.');
+    } finally {
+      submitLock.current = false;
+      setSaving(false);
     }
   };
 
@@ -335,7 +343,7 @@ export function Agenda() {
                 <X size={18} className="text-muted-foreground" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4" aria-busy={saving}>
               <div>
                 <label className="block text-sm text-foreground mb-1.5">Título *</label>
                 <input type="text" value={form.titulo} onChange={e => field('titulo', e.target.value)}
@@ -369,7 +377,7 @@ export function Agenda() {
   </div>
 )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-foreground mb-1.5">Data *</label>
                   <input type="date" value={form.data} onChange={e => field('data', e.target.value)} className={inputCls} />
@@ -414,14 +422,14 @@ export function Agenda() {
                   className={`${inputCls} resize-none`} />
               </div>
 
-              <div className="flex gap-3 pt-1 pb-2">
-                <button type="button" onClick={closeModal}
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1 pb-2">
+                <button type="button" disabled={saving} onClick={closeModal}
                   className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors">
                   Cancelar
                 </button>
-                <button type="submit"
+                <button type="submit" disabled={saving}
                   className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-                  {editId ? <><Pencil size={15} /> Salvar</> : <><Plus size={15} /> Adicionar</>}
+                  {saving ? <><LoaderCircle size={15} className="animate-spin" /> {editId ? 'Alterando...' : 'Salvando...'}</> : editId ? <><Pencil size={15} /> Salvar</> : <><Plus size={15} /> Adicionar</>}
                 </button>
               </div>
             </form>

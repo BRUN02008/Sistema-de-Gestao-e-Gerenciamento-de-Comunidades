@@ -331,13 +331,13 @@ export function DataProvider({
          * Converte os IDs do Django para string,
          * mantendo compatibilidade com o frontend.
          */
-        const moradoresApi: Morador[] = (data as Array<Morador & { data_nascimento?: string; familia_detalhes?: { nome?: string } }>).map((m) => ({
+        const moradoresApi: Morador[] = (data as Array<Morador & { data_nascimento?: string; data_cadastro?: string | null; dataCadastro?: string | null; familia_detalhes?: { nome?: string } }>).map((m) => ({
           ...m,
           id: String(m.id),
           dataNascimento: m.data_nascimento ?? m.dataNascimento ?? '',
           familia: m.familia == null ? null : String(m.familia),
           // A API não expõe data de cadastro; não inventar uma data para registros antigos.
-          dataCadastro: m.dataCadastro ?? '',
+          dataCadastro: m.data_cadastro ?? m.dataCadastro ?? '',
         }));
 
         if (!vigente) return;
