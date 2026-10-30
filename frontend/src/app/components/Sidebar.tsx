@@ -41,15 +41,6 @@ function NavItem({ to, icon, label, onClick }: NavItemProps) {
   );
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Administrador', tecnico: 'Técnico', visualizador: 'Morador'
-};
-const ROLE_BADGE_COLORS: Record<string, string> = {
-  admin: 'bg-primary/20 text-primary',
-  tecnico: 'bg-secondary/20 text-secondary',
-  visualizador: 'bg-accent/20 text-accent'
-};
-
 export function Sidebar({ onLogout, open = true, onClose }: SidebarProps) {
   const { user } = useAuth();
   const isMorador = user?.role === 'visualizador';
@@ -104,9 +95,9 @@ export function Sidebar({ onLogout, open = true, onClose }: SidebarProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-sidebar-foreground truncate">{user.nome}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${ROLE_BADGE_COLORS[user.role]}`}>
-                  {ROLE_LABELS[user.role]}
-                </span>
+                <p className="max-w-40 text-[11px] leading-snug text-sidebar-foreground/70">
+                  Tecnologia e inovação para uma gestão comunitária mais eficiente
+                </p>
               </div>
             </div>
             {isMorador && user.familia && (

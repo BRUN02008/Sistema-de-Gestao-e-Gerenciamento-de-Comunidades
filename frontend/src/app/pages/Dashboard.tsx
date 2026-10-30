@@ -22,12 +22,21 @@ function StatCard({ label, value, icon, color }: { label: string; value: number 
 }
 
 function DashboardAdmin() {
-  const { moradores, familias, atividades, documentos, atividadesCarregando, atividadesErro } = useData();
+  const { moradores, familias, documentos, eventos } = useData();
+
+  const agora = new Date();
+  const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+  const horarioAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+  const proximosEventos = eventos
+    .filter((evento) => evento.data > hoje || (evento.data === hoje && evento.hora >= horarioAtual))
+    .sort((a, b) => `${a.data}T${a.hora}`.localeCompare(`${b.data}T${b.hora}`))
+    .slice(0, 5);
 
   const atividadesPorStatus = [
-    { name: 'Concluídas', value: atividades.filter(a => a.status === 'concluida').length, color: '#5c8a3e' },
-    { name: 'Andamento', value: atividades.filter(a => a.status === 'em_andamento').length, color: '#3b7fa4' },
-    { name: 'Pendentes', value: atividades.filter(a => a.status === 'pendente').length, color: '#d4a373' }
+    { name: 'Concluídas', value: eventos.filter(e => e.status === 'concluida').length, color: '#5c8a3e' },
+    { name: 'Andamento', value: eventos.filter(e => e.status === 'andamento').length, color: '#3b7fa4' },
+    { name: 'Pendentes', value: eventos.filter(e => !e.status || e.status === 'pendente').length, color: '#d4a373' },
+    { name: 'Canceladas', value: eventos.filter(e => e.status === 'cancelada').length, color: '#b45a5a' }
   ];
 
   const moradoresPorEscolaridade = [
@@ -50,7 +59,7 @@ function DashboardAdmin() {
         <StatCard label="Moradores" value={moradores.length} icon={<Users size={20} className="text-primary" />} color="bg-primary/10" />
         <StatCard label="Famílias" value={familias.length} icon={<HomeIcon size={20} className="text-secondary" />} color="bg-secondary/10" />
         <StatCard label="Documentos" value={documentos.length} icon={<FileText size={20} className="text-accent" />} color="bg-accent/10" />
-        <StatCard label="Atividades" value={atividades.filter(a => a.status !== 'concluida').length} icon={<TrendingUp size={20} style={{ color: '#d4a373' }} />} color="bg-amber-100/60" />
+        <StatCard label="Atividades" value={eventos.length} icon={<TrendingUp size={20} style={{ color: '#d4a373' }} />} color="bg-amber-100/60" />
       </div>
 
       {/* Charts — stacked on mobile, side by side on large */}
@@ -91,38 +100,30 @@ function DashboardAdmin() {
         </Card>
       </div>
 
-      {/* Atividades recentes */}
+      {/* Próximos eventos da Agenda */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Atividades Recentes</CardTitle>
+            <CardTitle className="text-base">Próximas atividades</CardTitle>
             <Calendar size={18} className="text-muted-foreground" />
           </div>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-2">
-            {atividades.slice(0, 5).map((atividade) => (
-              <div key={atividade.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
+            {proximosEventos.map((evento) => (
+              <div key={evento.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">{atividade.tipo}</p>
-                  <p className="text-xs text-muted-foreground truncate">{atividade.responsavel} · {new Date(atividade.data).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-sm text-foreground truncate">{evento.titulo}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {new Date(`${evento.data}T00:00:00`).toLocaleDateString('pt-BR')}
+                    {evento.hora && ` · ${evento.hora}`}{evento.local && ` · ${evento.local}`}
+                  </p>
                 </div>
-                <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs
-                  ${atividade.status === 'concluida' ? 'bg-primary/20 text-primary' : ''}
-                  ${atividade.status === 'em_andamento' ? 'bg-accent/20 text-accent' : ''}
-                  ${atividade.status === 'pendente' ? 'bg-amber-100 text-amber-700' : ''}`}>
-                  {atividade.status === 'concluida' ? 'Concluída' : atividade.status === 'em_andamento' ? 'Andamento' : 'Pendente'}
-                </span>
+                {evento.status && <span className="shrink-0 px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary">{evento.status === 'andamento' ? 'Em andamento' : evento.status === 'concluida' ? 'Concluída' : evento.status === 'cancelada' ? 'Cancelada' : 'Pendente'}</span>}
               </div>
             ))}
-            {atividadesCarregando && (
-              <p className="text-center py-6 text-sm text-muted-foreground">Carregando atividades...</p>
-            )}
-            {!atividadesCarregando && atividadesErro && (
-              <p className="text-center py-6 text-sm text-destructive">Não foi possível carregar as atividades.</p>
-            )}
-            {!atividadesCarregando && !atividadesErro && atividades.length === 0 && (
-              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma atividade recente registrada</p>
+            {proximosEventos.length === 0 && (
+              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma atividade agendada</p>
             )}
           </div>
         </CardContent>
@@ -138,9 +139,11 @@ function DashboardMorador() {
   const familia = familias.find(f => f.nome === user?.familia);
 
   const hoje = new Date();
+  const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+  const horarioIso = `${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}`;
   const proximosEventos = [...eventos]
-    .filter(e => new Date(e.data) >= hoje)
-    .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+    .filter(e => e.data > hojeIso || (e.data === hojeIso && e.hora >= horarioIso))
+    .sort((a, b) => `${a.data}T${a.hora}`.localeCompare(`${b.data}T${b.hora}`))
     .slice(0, 3);
 
   return (
@@ -178,7 +181,10 @@ function DashboardMorador() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-foreground truncate">{evento.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{evento.horario} · {evento.local}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {evento.hora}{evento.local && ` · ${evento.local}`}
+                      {evento.status && ` · ${evento.status === 'andamento' ? 'Em andamento' : evento.status === 'concluida' ? 'Concluída' : evento.status === 'cancelada' ? 'Cancelada' : 'Pendente'}`}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -186,7 +192,7 @@ function DashboardMorador() {
           ) : (
             <div className="text-center py-8">
               <Clock className="mx-auto mb-2 text-muted-foreground" size={28} />
-              <p className="text-sm text-muted-foreground">Nenhum evento próximo</p>
+              <p className="text-sm text-muted-foreground">Nenhuma atividade agendada</p>
             </div>
           )}
         </CardContent>

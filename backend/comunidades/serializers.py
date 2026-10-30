@@ -424,6 +424,9 @@ class ResponsavelMoradorSerializerMixin:
 
 
 class EventoAgendaSerializer(ResponsavelMoradorSerializerMixin, serializers.ModelSerializer):
+    # A Agenda exige um morador cadastrado como responsável. Em atualizações
+    # parciais, DRF permite omitir o campo e manter a relação existente.
+    responsavel_morador_id = serializers.IntegerField(write_only=True, required=True, allow_null=False)
 
     class Meta:
         model = EventoAgenda

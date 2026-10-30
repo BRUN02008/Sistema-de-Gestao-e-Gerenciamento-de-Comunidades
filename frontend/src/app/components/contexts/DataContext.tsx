@@ -1035,6 +1035,10 @@ const deleteDocumento = useCallback(
   const addEvento = useCallback(
   async (e: Omit<EventoAgenda, 'id'>): Promise<EventoAgenda> => {
     try {
+      const responsavelMoradorId = Number(e.responsavelMoradorId);
+      if (!Number.isSafeInteger(responsavelMoradorId) || responsavelMoradorId <= 0) {
+        throw new Error('Selecione um morador cadastrado como responsável.');
+      }
       const data = (await api.post('/agenda/', {
         titulo: e.titulo,
         descricao: e.descricao,
@@ -1042,8 +1046,9 @@ const deleteDocumento = useCallback(
         hora: e.hora,
         local: e.local,
         responsavel: e.responsavel,
-        responsavel_morador_id: e.responsavelMoradorId ? Number(e.responsavelMoradorId) : null,
+        responsavel_morador_id: responsavelMoradorId,
         tipo: e.tipo,
+        status: e.status,
       })) as EventoAgendaAPI;
 
       const novo: EventoAgenda = {
@@ -1072,6 +1077,10 @@ const deleteDocumento = useCallback(
   const updateEvento = useCallback(
   async (e: EventoAgenda): Promise<void> => {
     try {
+      const responsavelMoradorId = Number(e.responsavelMoradorId);
+      if (!Number.isSafeInteger(responsavelMoradorId) || responsavelMoradorId <= 0) {
+        throw new Error('Selecione um morador cadastrado como responsável.');
+      }
       const data = (await api.put(`/agenda/${e.id}/`, {
         titulo: e.titulo,
         descricao: e.descricao,
@@ -1079,8 +1088,9 @@ const deleteDocumento = useCallback(
         hora: e.hora,
         local: e.local,
         responsavel: e.responsavel,
-        responsavel_morador_id: e.responsavelMoradorId ? Number(e.responsavelMoradorId) : null,
+        responsavel_morador_id: responsavelMoradorId,
         tipo: e.tipo,
+        status: e.status,
       })) as EventoAgendaAPI;
 
       const atualizado: EventoAgenda = {
